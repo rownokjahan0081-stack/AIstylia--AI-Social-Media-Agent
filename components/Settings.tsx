@@ -1,8 +1,11 @@
+
 import React, { useState } from 'react';
 import { UserSettings } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input, TextArea, Checkbox } from './ui/Form';
+import { getOnboardingSuggestions } from '../services/geminiService';
+import { SparklesIcon } from './Icons';
 
 interface SettingsProps {
     settings: UserSettings;
@@ -12,6 +15,7 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
     const [localSettings, setLocalSettings] = useState<UserSettings>(settings);
     const [isSaved, setIsSaved] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleInputChange = (field: keyof UserSettings, value: any) => {
         setLocalSettings(prev => ({ ...prev, [field]: value }));
@@ -23,6 +27,27 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
         localStorage.setItem('social-agent-settings', JSON.stringify(localSettings));
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
+    }
+
+    const handleGenerateSuggestions = async () => {
+        if (!localSettings.businessDescription) return;
+        setIsLoading(true);
+        const suggestions = await getOnboardingSuggestions(localSettings.businessDescription);
+        if(suggestions) {
+            setLocalSettings(prev => ({
+                ...prev,
+                contentPillars: suggestions.pillars.slice(0, 5), // Ensure max 5
+                brandVoice: suggestions.voice,
+            }));
+            setIsSaved(false);
+        }
+        setIsLoading(false);
+    }
+
+    const addPillar = () => {
+        if (localSettings.contentPillars.length < 5) {
+            handleInputChange('contentPillars', [...localSettings.contentPillars, '']);
+        }
     }
 
     return (
@@ -50,7 +75,19 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                 </Card>
 
                 <Card className="bg-slate-800/50">
-                    <Card.Header><Card.Title>Content Pillars</Card.Title></Card.Header>
+                    <Card.Header>
+                        <div className="flex justify-between items-center">
+                            <Card.Title>Content Pillars</Card.Title>
+                            <Button 
+                                onClick={handleGenerateSuggestions} 
+                                disabled={isLoading || !localSettings.businessDescription} 
+                                className="bg-slate-700 hover:bg-slate-600 text-xs h-8 px-3"
+                            >
+                                <SparklesIcon className="w-3 h-3 mr-2" />
+                                {isLoading ? 'Generating...' : 'Suggest with AI'}
+                            </Button>
+                        </div>
+                    </Card.Header>
                     <Card.Content className="space-y-2">
                         {localSettings.contentPillars.map((pillar, index) => (
                              <input key={index} type="text" value={pillar} onChange={e => {
@@ -59,6 +96,11 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                                 handleInputChange('contentPillars', newPillars);
                             }} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white" />
                         ))}
+                        {localSettings.contentPillars.length < 5 && (
+                            <button onClick={addPillar} className="text-sky-400 text-sm hover:text-sky-300 transition-colors mt-2">
+                                + Add Pillar
+                            </button>
+                        )}
                     </Card.Content>
                 </Card>
 

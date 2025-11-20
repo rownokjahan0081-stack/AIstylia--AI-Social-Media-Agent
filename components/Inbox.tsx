@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { InboxItem, InboxItemType, UserSettings, Connection, Platform } from '../types';
+import { InboxItem, InboxItemType, UserSettings, Connection, Platform, Page } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { generateReply } from '../services/geminiService';
-import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, DownloadCloudIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon } from './Icons';
+import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon } from './Icons';
 
 const createMockItem = (id: number, connections: Connection[]): InboxItem | null => {
     if (connections.length === 0) return null;
@@ -48,9 +48,10 @@ const ItemTypeIcon = ({ type }: { type: InboxItemType }) => {
 interface InboxProps {
     settings: UserSettings;
     connections: Connection[];
+    setActivePage: (page: Page) => void;
 }
 
-export const Inbox: React.FC<InboxProps> = ({ settings, connections }) => {
+export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePage }) => {
   const [inboxItems, setInboxItems] = useState<InboxItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<InboxItem | null>(null);
   const [generatedReply, setGeneratedReply] = useState('');
@@ -85,13 +86,20 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections }) => {
     }
   }, [generatedReply, settings.autoReply, isSent, isLoading]);
 
+  // Automatically load messages when connections are available
+  useEffect(() => {
+      if (connections.length > 0 && inboxItems.length === 0) {
+          const newItems = Array.from({ length: 5 }, (_, i) => createMockItem(i + 1, connections)).filter(Boolean) as InboxItem[];
+          setInboxItems(newItems);
+          if (!selectedItem && newItems.length > 0 && window.innerWidth >= 768) {
+            setSelectedItem(newItems[0]);
+          }
+      }
+  }, [connections]);
 
   const handleFetchNew = () => {
     const newItems = Array.from({ length: 5 }, (_, i) => createMockItem(inboxItems.length + i + 1, connections)).filter(Boolean) as InboxItem[];
     setInboxItems(prev => [...newItems, ...prev]);
-    if (!selectedItem && newItems.length > 0 && window.innerWidth >= 768) {
-        setSelectedItem(newItems[0]);
-    }
   };
 
   const handleSelectItem = (item: InboxItem) => {
@@ -130,7 +138,11 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections }) => {
         <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 animate-fade-in">
             <LinkIcon className="w-16 h-16 text-slate-600 mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">No Accounts Connected</h2>
-            <p>Please connect a social media account in the 'Connections' tab to start managing your inbox.</p>
+            <p className="mb-6 max-w-md">Connect your Facebook or Instagram account to start managing messages, comments, and reviews from one place.</p>
+            <Button onClick={() => setActivePage('connections')}>
+                <LinkIcon className="w-4 h-4 mr-2" />
+                Connect Meta Account
+            </Button>
         </div>
     );
   }
@@ -145,12 +157,6 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections }) => {
                 Interactions
             </Card.Title>
           </Card.Header>
-          <div className="px-6 pb-4 flex-shrink-0">
-            <Button onClick={handleFetchNew} className="w-full">
-                <DownloadCloudIcon className="w-4 h-4 mr-2" />
-                Fetch New
-            </Button>
-          </div>
           <Card.Content className="p-0 flex-1 overflow-y-auto">
             {inboxItems.length > 0 ? (
                 <ul className="divide-y divide-slate-700">
@@ -177,7 +183,7 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections }) => {
                 </ul>
             ) : (
                 <div className="p-6 text-center text-slate-400">
-                    <p>Your inbox is empty. Fetch new interactions to get started.</p>
+                    <p>Your inbox is empty. New interactions will appear here automatically.</p>
                 </div>
             )}
           </Card.Content>
@@ -251,7 +257,7 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections }) => {
           </Card>
         ) : (
           <div className="flex items-center justify-center h-full text-slate-500">
-            <p>Select an item from the inbox or fetch new interactions.</p>
+            <p>Select an item from the inbox to view details.</p>
           </div>
         )}
       </div>

@@ -127,7 +127,7 @@ const App: React.FC = () => {
       case 'dashboard':
         return <Dashboard setActivePage={handlePageChange} settings={settings} />;
       case 'inbox':
-        return <Inbox settings={settings} connections={connections} />;
+        return <Inbox settings={settings} connections={connections} setActivePage={handlePageChange} />;
       case 'content':
         return <ContentPlanner settings={settings} connections={connections} />;
       case 'analytics':
