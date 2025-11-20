@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  
   useEffect(() => {
     // Initialize Local Data if available
     const userSettings = localStorage.getItem('social-agent-settings');
@@ -158,11 +158,11 @@ const App: React.FC = () => {
       <span className="ml-3">{label}</span>
     </button>
   );
-
+  
   if (isLoading) {
     return <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-white">Loading Agent...</div>;
   }
-  
+
   if (!user) {
     return <Auth onLogin={handleLogin} />;
   }

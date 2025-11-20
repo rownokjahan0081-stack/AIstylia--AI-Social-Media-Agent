@@ -2,7 +2,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Post, UserSettings, Connection, Platform, ContentAsset, TrendTopic, TrendContentIdea } from '../types';
 
-const getAIClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Safe check for environment variable with fallback
+const API_KEY = (typeof process !== 'undefined' && process.env && process.env.API_KEY) || "AIzaSyBTPhYMDd3drH535s4keuQXtTH6zEVcbZo";
+
+const getAIClient = () => new GoogleGenAI({ apiKey: API_KEY });
 
 // Helper to safely parse JSON that might be wrapped in markdown code blocks or contain surrounding text
 const safeParseJSON = (text: string) => {
