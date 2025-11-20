@@ -33,8 +33,10 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     const verifyToken = 'social-agent-secret-123';
 
     useEffect(() => {
+        // Facebook Login requires HTTPS. If on HTTP, we flag as Dev/HTTP environment and FORCE simulation.
         if (window.location.protocol !== 'https:') {
             setIsDevEnvironment(true);
+            setUseSimulation(true); 
         }
         
         const savedSim = localStorage.getItem('social-agent-simulation-mode');
@@ -131,8 +133,11 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     const handleGrantPermission = (rerequest = false) => {
         setModalStep('connecting');
 
-        // Check for simulation mode
-        if (useSimulation) {
+        // CRITICAL: FB.login fails on HTTP. Guard against this by forcing simulation.
+        if (useSimulation || isDevEnvironment || window.location.protocol !== 'https:') {
+             if (window.location.protocol !== 'https:') {
+                 console.warn("Facebook Login is not supported on HTTP. Forcing simulation mode.");
+             }
              console.log("Using Simulation Mode");
              runSimulation();
              return;
@@ -169,7 +174,9 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
 
     const handleResetAndReconnect = () => {
         setModalStep('connecting');
-        if (useSimulation) {
+        
+        // CRITICAL: FB.getAccessToken also fails on HTTP.
+        if (useSimulation || isDevEnvironment || window.location.protocol !== 'https:') {
             runSimulation();
             return;
         }
@@ -236,10 +243,10 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                              <div className="bg-amber-500/10 border border-amber-500/50 p-3 rounded-md my-4 text-left">
                                 <p className="text-amber-400 text-sm font-semibold flex items-center">
                                     <AlertTriangleIcon className="w-4 h-4 mr-2" />
-                                    Development Mode
+                                    HTTPS Required
                                 </p>
                                 <p className="text-slate-400 text-xs mt-1">
-                                    You are running on HTTP/Localhost. Real FB Login works, but requires you to be an Admin/Tester.
+                                    Facebook Login is not supported on HTTP. The app has automatically switched to <strong>Demo Mode</strong>.
                                 </p>
                             </div>
                         )}
@@ -250,20 +257,21 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         </div>
 
                         <div className="mb-6 flex justify-center">
-                             <label className="flex items-center cursor-pointer text-xs text-slate-400 hover:text-white transition-colors p-2 rounded hover:bg-slate-700/50 border border-transparent hover:border-slate-600">
+                             <label className={`flex items-center cursor-pointer text-xs text-slate-400 hover:text-white transition-colors p-2 rounded hover:bg-slate-700/50 border border-transparent hover:border-slate-600 ${isDevEnvironment ? 'opacity-70 cursor-not-allowed' : ''}`}>
                                 <input 
                                     type="checkbox" 
-                                    checked={useSimulation} 
-                                    onChange={e => toggleSimulation(e.target.checked)} 
-                                    className="h-4 w-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0 mr-2"
+                                    checked={useSimulation || isDevEnvironment} 
+                                    onChange={e => !isDevEnvironment && toggleSimulation(e.target.checked)} 
+                                    disabled={isDevEnvironment}
+                                    className="h-4 w-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0 mr-2 disabled:opacity-50"
                                 />
-                                Enable Demo Mode (Simulate Connection)
+                                {isDevEnvironment ? 'Demo Mode Enforced (HTTPS Required)' : 'Enable Demo Mode (Simulate Connection)'}
                             </label>
                         </div>
 
                         <div className="flex flex-col gap-3">
                             <Button onClick={() => handleGrantPermission(false)}>
-                                {useSimulation ? 'Start Simulation' : 'Continue with Facebook'}
+                                {(useSimulation || isDevEnvironment) ? 'Start Simulation' : 'Continue with Facebook'}
                             </Button>
                             <Button onClick={closeModal} className="bg-slate-600 hover:bg-slate-700">Cancel</Button>
                         </div>
@@ -318,8 +326,12 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                            <p className="text-slate-300 font-medium">Why is this happening?</p>
                            <ul className="list-disc list-inside text-slate-400 space-y-2 text-xs">
                                 <li>
+                                    <strong className="text-slate-200">HTTPS Required:</strong><br/> 
+                                    Facebook Login is disabled on HTTP pages.
+                                </li>
+                                <li>
                                     <strong className="text-slate-200">"Feature Unavailable" Error:</strong><br/> 
-                                    The app is in "Development Mode". You MUST add your Facebook account as a "Tester" in the Meta App Dashboard to log in.
+                                    If you are an admin, ensure you are listed as a Tester in the Meta App Dashboard.
                                 </li>
                                 <li>
                                     <strong className="text-slate-200">No Pages Selected:</strong><br/>
@@ -380,12 +392,17 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                     <Card.Content className="flex-1 flex flex-col">
                         <p className="text-slate-400">Connect your Facebook Pages and Instagram Profiles to manage comments, messages, and posts.</p>
                         
-                        {useSimulation && (
+                        {(useSimulation || isDevEnvironment) && (
                              <div className="mt-4 bg-purple-500/10 border border-purple-500/30 p-3 rounded-md flex items-start gap-3">
                                 <ZapIcon className="w-5 h-5 text-purple-400 mt-0.5" />
                                 <div>
                                     <p className="text-purple-300 text-sm font-semibold">Demo Mode Active</p>
-                                    <p className="text-purple-400/70 text-xs">You are using simulated connections. Real Facebook data will not be loaded.</p>
+                                    <p className="text-purple-400/70 text-xs">
+                                        {isDevEnvironment 
+                                            ? "Enforced because Facebook Login requires HTTPS."
+                                            : "You are using simulated connections. Real Facebook data will not be loaded."
+                                        }
+                                    </p>
                                 </div>
                              </div>
                         )}
@@ -413,14 +430,15 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                                     {metaConnections.length > 0 ? 'Connect Another Meta Account' : <><LinkIcon className="w-4 h-4 mr-2" /> Connect with Meta</>}
                                 </Button>
                                 <div className="mt-4 flex justify-center items-center gap-2">
-                                     <label className="flex items-center cursor-pointer text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                     <label className={`flex items-center cursor-pointer text-xs text-slate-500 hover:text-slate-300 transition-colors ${isDevEnvironment ? 'opacity-70 cursor-not-allowed' : ''}`}>
                                         <input 
                                             type="checkbox" 
-                                            checked={useSimulation} 
-                                            onChange={e => toggleSimulation(e.target.checked)} 
-                                            className="h-3 w-3 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0 mr-2"
+                                            checked={useSimulation || isDevEnvironment} 
+                                            onChange={e => !isDevEnvironment && toggleSimulation(e.target.checked)} 
+                                            disabled={isDevEnvironment}
+                                            className="h-3 w-3 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0 mr-2 disabled:opacity-50"
                                         />
-                                        Force Demo Mode
+                                        {isDevEnvironment ? 'Demo Mode Enforced' : 'Force Demo Mode'}
                                     </label>
                                 </div>
                             </div>

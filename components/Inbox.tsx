@@ -97,11 +97,6 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
       }
   }, [connections]);
 
-  const handleFetchNew = () => {
-    const newItems = Array.from({ length: 5 }, (_, i) => createMockItem(inboxItems.length + i + 1, connections)).filter(Boolean) as InboxItem[];
-    setInboxItems(prev => [...newItems, ...prev]);
-  };
-
   const handleSelectItem = (item: InboxItem) => {
     setSelectedItem(item);
     setGeneratedReply('');
