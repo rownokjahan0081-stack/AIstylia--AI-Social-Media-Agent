@@ -428,21 +428,48 @@ export const analyzeTrends = async (settings: UserSettings): Promise<{ trends: T
   }
 };
 
-export const generateImageFromPrompt = async (prompt: string, settings: UserSettings): Promise<string | null> => {
+export const generateImageFromPrompt = async (prompt: string, settings: UserSettings, referenceImageBase64?: string | null): Promise<string | null> => {
   const ai = getAIClient();
   try {
-      // Use flash-image which supports both inputs and outputs for basic visual tasks or simple generation via text prompt
+      const parts: any[] = [];
+      
+      // If a reference image exists, add it first
+      if (referenceImageBase64) {
+        // Extract raw base64 if prefix exists
+        const base64Data = referenceImageBase64.includes(',') 
+            ? referenceImageBase64.split(',')[1] 
+            : referenceImageBase64;
+
+        parts.push({
+            inlineData: {
+                mimeType: 'image/png', // Default to png for safety, or parse actual mime if needed
+                data: base64Data
+            }
+        });
+        
+        // Add text prompt instructing to use the image
+        parts.push({ 
+            text: `Use the provided image as a reference. ${prompt}. Context: Business is ${settings.businessName}, ${settings.businessDescription}.` 
+        });
+      } else {
+          // Text only prompt
+          parts.push({ 
+              text: `Generate an image based on this description: ${prompt}. Context: Business is ${settings.businessName}, ${settings.businessDescription}.` 
+          });
+      }
+
+      // Use flash-image for generation/editing
       const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash-image',
           contents: {
-             parts: [{ text: `Generate an image based on this description: ${prompt}. Context: Business is ${settings.businessName}, ${settings.businessDescription}.` }]
+             parts: parts
           }
       });
       
-      // We look for an inlineData part which contains the image
-      const parts = response.candidates?.[0]?.content?.parts;
-      if (parts) {
-          for (const part of parts) {
+      // Iterate through parts to find the image output
+      const responseParts = response.candidates?.[0]?.content?.parts;
+      if (responseParts) {
+          for (const part of responseParts) {
               if (part.inlineData) {
                    return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
               }
@@ -451,7 +478,6 @@ export const generateImageFromPrompt = async (prompt: string, settings: UserSett
       return null;
   } catch (error) {
       console.error("Image generation error:", error);
-      // Fallback or re-throw depending on UX needs
       throw error;
   }
 }

@@ -3,7 +3,7 @@ import { ContentAsset, UserSettings } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Form';
-import { CheckCircleIcon, RefreshCwIcon, SparklesIcon, DownloadCloudIcon, CameraIcon } from './Icons';
+import { CheckCircleIcon, RefreshCwIcon, SparklesIcon, DownloadCloudIcon, CameraIcon, LinkIcon } from './Icons';
 import { generateImageFromPrompt } from '../services/geminiService';
 
 // We need access to settings to provide context for image generation
@@ -21,6 +21,8 @@ export const ContentLibrary: React.FC = () => {
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [referenceImage, setReferenceImage] = useState<string | null>(null);
+    const [selectedReferenceId, setSelectedReferenceId] = useState<string>('');
 
     useEffect(() => {
         const storedAssets = localStorage.getItem('social-agent-library');
@@ -37,6 +39,30 @@ export const ContentLibrary: React.FC = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
+        }
+    };
+
+    const handleReferenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                setReferenceImage(ev.target?.result as string);
+                setSelectedReferenceId(''); // Clear library selection if uploading new file
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+
+    const handleReferenceSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const id = e.target.value;
+        setSelectedReferenceId(id);
+        if (id) {
+            const asset = assets.find(a => a.id === id);
+            if (asset) {
+                setReferenceImage(asset.url);
+            }
+        } else {
+            setReferenceImage(null);
         }
     };
 
@@ -72,15 +98,16 @@ export const ContentLibrary: React.FC = () => {
         setGeneratedImage(null);
         try {
             const settings = getSettings();
-            const result = await generateImageFromPrompt(prompt, settings);
+            // Pass the reference image if set
+            const result = await generateImageFromPrompt(prompt, settings, referenceImage);
             if (result) {
                 setGeneratedImage(result);
             } else {
-                alert("Could not generate image. Please try a different prompt.");
+                alert("Could not generate image. The model might be busy or the prompt might be flagged. Please try again.");
             }
         } catch (e) {
             console.error(e);
-            alert("Image generation failed.");
+            alert("Image generation failed. Please check the console for details.");
         } finally {
             setIsGenerating(false);
         }
@@ -98,6 +125,8 @@ export const ContentLibrary: React.FC = () => {
         saveAsset(newAsset);
         setGeneratedImage(null);
         setPrompt('');
+        setReferenceImage(null);
+        setSelectedReferenceId('');
     }
     
     const saveAsset = (asset: ContentAsset) => {
@@ -160,6 +189,53 @@ export const ContentLibrary: React.FC = () => {
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
                                     />
+                                    
+                                    <div className="bg-slate-900/30 p-4 rounded-lg border border-slate-700">
+                                        <label className="block text-sm font-medium text-slate-400 mb-2">Reference Image (Optional)</label>
+                                        <p className="text-xs text-slate-500 mb-3">Upload a file or select from library to guide the generation.</p>
+                                        
+                                        <div className="space-y-3">
+                                            <div>
+                                                <input 
+                                                    type="file" 
+                                                    accept="image/*" 
+                                                    onChange={handleReferenceFileChange} 
+                                                    className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-white hover:file:bg-slate-600"
+                                                />
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-slate-500">OR</span>
+                                                <select 
+                                                    value={selectedReferenceId} 
+                                                    onChange={handleReferenceSelectChange}
+                                                    className="flex-1 bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-xs text-white focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                                                >
+                                                    <option value="">Select from Content Library...</option>
+                                                    {assets.map(a => (
+                                                        <option key={a.id} value={a.id}>{a.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {referenceImage && (
+                                                <div className="relative mt-2 w-20 h-20 rounded-md overflow-hidden border border-sky-500/50">
+                                                    <img src={referenceImage} alt="Reference" className="w-full h-full object-cover" />
+                                                    <button 
+                                                        onClick={() => {
+                                                            setReferenceImage(null);
+                                                            setSelectedReferenceId('');
+                                                        }}
+                                                        className="absolute top-0 right-0 bg-red-500/80 text-white p-0.5 rounded-bl-md hover:bg-red-600"
+                                                        title="Remove reference"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <Button onClick={handleGenerateImage} disabled={isGenerating || !prompt} className="w-full bg-purple-600 hover:bg-purple-700">
                                         {isGenerating ? (
                                             <><RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> Generating Image...</>
@@ -168,7 +244,7 @@ export const ContentLibrary: React.FC = () => {
                                         )}
                                     </Button>
                                 </div>
-                                <div className="flex-1 bg-slate-900/50 rounded-lg border border-slate-700 flex items-center justify-center min-h-[200px] relative overflow-hidden">
+                                <div className="flex-1 bg-slate-900/50 rounded-lg border border-slate-700 flex items-center justify-center min-h-[300px] relative overflow-hidden">
                                     {generatedImage ? (
                                         <div className="relative w-full h-full group">
                                             <img src={generatedImage} alt="AI Generated" className="w-full h-full object-contain" />
