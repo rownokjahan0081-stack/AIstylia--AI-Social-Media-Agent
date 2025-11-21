@@ -14,7 +14,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings })
   const quickActions = [
     {
       title: 'Review Inbox',
-      description: 'Check new messages and approve replies.',
+      description: 'Check new messages and send replies.',
       icon: <InboxIcon className="w-8 h-8 text-sky-400" />,
       action: () => setActivePage('inbox'),
       color: 'sky'

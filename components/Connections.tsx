@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Connection, Platform } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { FacebookIcon, InstagramIcon, CheckCircleIcon, LinkIcon, BotIcon, AlertTriangleIcon, RefreshCwIcon, ZapIcon, HelpCircleIcon, UsersIcon, ArrowLeftIcon, SettingsIcon, CopyIcon, GlobeIcon } from './Icons';
+import { FacebookIcon, InstagramIcon, CheckCircleIcon, LinkIcon, BotIcon, AlertTriangleIcon, RefreshCwIcon, ZapIcon, HelpCircleIcon, ArrowLeftIcon, SettingsIcon, CopyIcon } from './Icons';
 
 // Let TypeScript know that the FB object will be available on the window
 declare const FB: any;
@@ -35,16 +35,14 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     useEffect(() => {
         // Facebook Login requires HTTPS. If on HTTP, we flag as Dev/HTTP environment and FORCE simulation.
         if (window.location.protocol !== 'https:') {
+            console.warn("App is running on HTTP. Facebook Login requires HTTPS. Enforcing Simulation Mode.");
             setIsDevEnvironment(true);
             setUseSimulation(true); 
-        }
-        
-        const savedSim = localStorage.getItem('social-agent-simulation-mode');
-        if (savedSim) {
-            setUseSimulation(savedSim === 'true');
-        } else if (window.location.protocol !== 'https:') {
-            // Default to true on http/localhost if not set
-            setUseSimulation(true);
+        } else {
+            const savedSim = localStorage.getItem('social-agent-simulation-mode');
+            if (savedSim) {
+                setUseSimulation(savedSim === 'true');
+            }
         }
     }, []);
 
@@ -79,6 +77,11 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     };
 
     const fetchUserAccounts = () => {
+        if (typeof FB === 'undefined') {
+            setModalStep('noAccountsFound');
+            return;
+        }
+
         FB.api(
             '/me/accounts',
             'GET',

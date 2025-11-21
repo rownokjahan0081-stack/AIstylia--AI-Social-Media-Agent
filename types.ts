@@ -26,6 +26,8 @@ export interface InboxItem {
   platform: Platform;
   connectionId: string; // Which connected account this is from
   timestamp: string;
+  replied?: boolean;
+  lastReply?: string;
 }
 
 export interface Post {
@@ -47,6 +49,13 @@ export interface GeneratedPostIdea {
   hashtags: string[];
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 export interface UserSettings {
   businessName: string;
   businessDescription: string;
@@ -56,6 +65,9 @@ export interface UserSettings {
   contentPillars: string[];
   autoPost: boolean;
   autoReply: boolean;
+  // Order Automation Settings
+  autoConfirmOrders: boolean;
+  productCatalog: Product[];
 }
 
 export interface ContentAsset {

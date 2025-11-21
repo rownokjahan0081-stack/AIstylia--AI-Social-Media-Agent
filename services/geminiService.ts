@@ -2,8 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Post, UserSettings, Connection, Platform, ContentAsset, TrendTopic, TrendContentIdea } from '../types';
 
-// Safe check for environment variable with fallback
-const API_KEY = (typeof process !== 'undefined' && process.env && process.env.API_KEY) || "AIzaSyBTPhYMDd3drH535s4keuQXtTH6zEVcbZo";
+// Safe check for environment variable with fallback for development
+const API_KEY = process.env.API_KEY || "AIzaSyBTPhYMDd3drH535s4keuQXtTH6zEVcbZo";
 
 const getAIClient = () => new GoogleGenAI({ apiKey: API_KEY });
 
@@ -79,14 +79,49 @@ export const getOnboardingSuggestions = async (businessDescription: string): Pro
 };
 
 
-export const generateReply = async (messageContent: string, settings: UserSettings): Promise<string> => {
+export const generateReply = async (messageContent: string, type: string, settings: UserSettings): Promise<string> => {
   const ai = getAIClient();
+  
+  // Prepare catalog string if auto-confirm is on
+  const catalogString = settings.autoConfirmOrders && settings.productCatalog.length > 0
+    ? `Active Product Catalog (Name | Price | Stock): 
+       ${settings.productCatalog.map(p => `- ${p.name}: $${p.price} (Qty: ${p.quantity})`).join('\n')}
+       
+       Shipping Cost: $5.00 Flat Rate.`
+    : "You do not have access to the order database. Do not confirm orders.";
+
+  const orderRules = settings.autoConfirmOrders
+    ? `ORDER PROCESSING RULES:
+       1. You are authorized to CONFIRM orders if the user provides: Product Name, Quantity, and Delivery Address.
+       2. Check the "Active Product Catalog" above. If the product is not listed or out of stock, apologize and say it's unavailable.
+       3. CALCULATE THE TOTAL: (Product Price * Quantity) + $5.00 Shipping.
+       4. If the user provides all 3 details (Product, Qty, Address), say exactly: "Order Confirmed! Your total is $[Total Amount] (including shipping). We will ship to [Address]."
+       5. If details are missing (e.g., missing address), tentatively accept but ask for the missing information before confirming the final total.
+       6. If the user is just asking for price, quote the price from the catalog.`
+    : `ORDER PROCESSING RULES:
+       1. DO NOT confirm specific orders, process refunds, or verify personal account details. 
+       2. If the user asks about an order status, confirmation, or refund, politely inform them that you cannot verify specific orders here and direct them to check their email or contact official customer support.`;
+
   try {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: `Respond to the following customer message: "${messageContent}"`,
+        contents: `Respond to the following ${type} from a customer: "${messageContent}"`,
         config: {
-            systemInstruction: `You are an expert social media manager for ${settings.businessName}, a ${settings.businessDescription}. Your target audience is ${settings.targetAudience}. Your brand voice must be ${settings.brandVoice}. Keep the response concise, helpful, and engaging, and strictly adhere to the brand voice.`,
+            systemInstruction: `You are an expert social media manager for ${settings.businessName}, a ${settings.businessDescription}. 
+            Target Audience: ${settings.targetAudience}. 
+            Brand Voice: ${settings.brandVoice}. 
+            
+            Context: This is a ${type} (Direct Message or Public Comment).
+            
+            ${catalogString}
+
+            ${orderRules}
+
+            GENERAL RULES:
+            1. Keep the response concise, helpful, and engaging.
+            2. Strictly adhere to the brand voice.
+            3. If this is a Public Comment, keep the interaction friendly. If they try to order publicly, ask them to DM you with the address for privacy.
+            `,
         }
     });
     return response.text || "I'm sorry, I couldn't generate a response.";

@@ -74,7 +74,14 @@ const App: React.FC = () => {
             brandVoice: "Warm, Inviting, Passionate, Community-focused",
             contentPillars: ["Daily Brews", "Barista Spotlight", "Community Events", "Coffee Education", "Behind the Scenes"],
             autoPost: false,
-            autoReply: false
+            autoReply: true,
+            autoConfirmOrders: true,
+            productCatalog: [
+                { id: "p1", name: "Bag of House Blend", price: 18, quantity: 50 },
+                { id: "p2", name: "Chocolate Croissant", price: 4.5, quantity: 20 },
+                { id: "p3", name: "Cold Brew Kit", price: 25, quantity: 15 },
+                { id: "p4", name: "Ceramic Mug", price: 12, quantity: 30 }
+            ]
         };
         
         const mockConnections: Connection[] = [
