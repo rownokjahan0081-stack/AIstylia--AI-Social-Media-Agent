@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Post, UserSettings, Connection, Platform, ContentAsset, TrendTopic, TrendContentIdea } from '../types';
 
@@ -78,56 +77,96 @@ export const getOnboardingSuggestions = async (businessDescription: string): Pro
   }
 };
 
+export interface ReplyResponse {
+    replyText: string | null; // Null if we shouldn't reply (e.g. disabled order)
+    category: 'INQUIRY' | 'ORDER' | 'COMPLIMENT';
+    action: 'NONE' | 'EMAIL_OWNER' | 'ASK_ADDRESS';
+    internalNote?: string; // For the UI toast
+    orderCode?: string;
+}
 
-export const generateReply = async (messageContent: string, type: string, settings: UserSettings): Promise<string> => {
+export const generateReply = async (messageContent: string, type: string, settings: UserSettings): Promise<ReplyResponse> => {
   const ai = getAIClient();
   
   // Prepare catalog string if auto-confirm is on
-  const catalogString = settings.autoConfirmOrders && settings.productCatalog.length > 0
-    ? `Active Product Catalog (Name | Price | Stock): 
+  let catalogString = "";
+  if (settings.productCatalog && settings.productCatalog.length > 0) {
+       catalogString = `Active Product Catalog (Name | Price | Stock): 
        ${settings.productCatalog.map(p => `- ${p.name}: $${p.price} (Qty: ${p.quantity})`).join('\n')}
        
-       Shipping Cost: $5.00 Flat Rate.`
-    : "You do not have access to the order database. Do not confirm orders.";
+       Shipping Cost: $5.00 Flat Rate.`;
+  } else {
+       catalogString = "No product catalog available. Assume items are out of stock unless generic.";
+  }
 
-  const orderRules = settings.autoConfirmOrders
-    ? `ORDER PROCESSING RULES:
-       1. You are authorized to CONFIRM orders if the user provides: Product Name, Quantity, and Delivery Address.
-       2. Check the "Active Product Catalog" above. If the product is not listed or out of stock, apologize and say it's unavailable.
-       3. CALCULATE THE TOTAL: (Product Price * Quantity) + $5.00 Shipping.
-       4. If the user provides all 3 details (Product, Qty, Address), say exactly: "Order Confirmed! Your total is $[Total Amount] (including shipping). We will ship to [Address]."
-       5. If details are missing (e.g., missing address), tentatively accept but ask for the missing information before confirming the final total.
-       6. If the user is just asking for price, quote the price from the catalog.`
-    : `ORDER PROCESSING RULES:
-       1. DO NOT confirm specific orders, process refunds, or verify personal account details. 
-       2. If the user asks about an order status, confirmation, or refund, politely inform them that you cannot verify specific orders here and direct them to check their email or contact official customer support.`;
-
-  try {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Respond to the following ${type} from a customer: "${messageContent}"`,
-        config: {
-            systemInstruction: `You are an expert social media manager for ${settings.businessName}, a ${settings.businessDescription}. 
+  const systemPrompt = `You are an expert social media manager for ${settings.businessName}, a ${settings.businessDescription}. 
             Target Audience: ${settings.targetAudience}. 
             Brand Voice: ${settings.brandVoice}. 
             
             Context: This is a ${type} (Direct Message or Public Comment).
             
             ${catalogString}
+            Auto-Confirm Orders Enabled: ${settings.autoConfirmOrders}
 
-            ${orderRules}
+            TASK: Analyze the message and categorize it into one of three sectors: INQUIRY, ORDER, or COMPLIMENT.
 
-            GENERAL RULES:
-            1. Keep the response concise, helpful, and engaging.
-            2. Strictly adhere to the brand voice.
-            3. If this is a Public Comment, keep the interaction friendly. If they try to order publicly, ask them to DM you with the address for privacy.
-            `,
+            SECTOR 1: INQUIRY
+            - Answer relevant questions about the business, products, or hours.
+            - If the question is irrelevant (e.g., "Who is the president?", "Math homework"), politely say sorry and decline to answer.
+            - CRITICAL: If the user asks a relevant question but you do NOT have the information (e.g., "Is your coffee gluten-free?" and you don't know), say sorry for not having the information and state that you will email the owner to find out. Set 'action' to 'EMAIL_OWNER'.
+
+            SECTOR 2: ORDER
+            - If 'Auto-Confirm Orders' is FALSE: Do NOT generate a reply text. Set 'replyText' to null. Set 'action' to 'EMAIL_OWNER'. Set 'internalNote' to 'Order forwarding to email (Auto-confirm disabled)'.
+            - If 'Auto-Confirm Orders' is TRUE:
+                1. Check Stock: Is the item in the catalog? If no/out of stock, apologize.
+                2. Check Address: Did they provide a delivery address? If NO, ask for it. Set 'action' to 'ASK_ADDRESS'.
+                3. If Stock OK and Address OK:
+                   - Calculate Total: (Price * Qty) + 5.
+                   - Generate a random 6-digit Order Code (e.g., ORD-8392).
+                   - Confirm the order, state the total, provide the Order Code, and mention it has been emailed.
+                   - Set 'action' to 'EMAIL_OWNER' (to notify business).
+
+            SECTOR 3: COMPLIMENT
+            - Positive: Thank them warmly according to brand voice.
+            - Negative/Hateful: Respond politely and apologetically. Do not get defensive.
+
+            Output must be a JSON object.`;
+
+  try {
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Customer Message: "${messageContent}"`,
+        config: {
+            systemInstruction: systemPrompt,
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    category: { type: Type.STRING, enum: ['INQUIRY', 'ORDER', 'COMPLIMENT'] },
+                    replyText: { type: Type.STRING, description: "The text to send to the customer. Null if auto-confirm is disabled for orders." },
+                    action: { type: Type.STRING, enum: ['NONE', 'EMAIL_OWNER', 'ASK_ADDRESS'] },
+                    internalNote: { type: Type.STRING, description: "A short summary of the action for the dashboard toast notification." },
+                    orderCode: { type: Type.STRING, description: "The generated order code if applicable." }
+                }
+            }
         }
     });
-    return response.text || "I'm sorry, I couldn't generate a response.";
+    
+    const parsed = safeParseJSON(response.text || "");
+    return {
+        category: parsed.category || 'INQUIRY',
+        replyText: parsed.replyText || null,
+        action: parsed.action || 'NONE',
+        internalNote: parsed.internalNote || '',
+        orderCode: parsed.orderCode
+    };
   } catch (error) {
     console.error("Error generating reply:", error);
-    return "Sorry, I couldn't generate a reply at the moment.";
+    return {
+        category: 'INQUIRY',
+        replyText: "I'm sorry, I'm having trouble processing your request right now.",
+        action: 'NONE'
+    };
   }
 };
 

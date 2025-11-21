@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { InboxItem, InboxItemType, UserSettings, Connection, Platform, Page, Product } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { generateReply } from '../services/geminiService';
-import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon } from './Icons';
+import { generateReply, ReplyResponse } from '../services/geminiService';
+import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon, AlertTriangleIcon } from './Icons';
 import { Input, Checkbox } from './ui/Form';
 
 const createMockItem = (id: number, connections: Connection[]): InboxItem | null => {
@@ -94,12 +93,17 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
   const [generatedReply, setGeneratedReply] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<ReplyResponse | null>(null);
   
   // Order Config Modal State
   const [showOrderConfig, setShowOrderConfig] = useState(false);
   const [localSettings, setLocalSettings] = useState<UserSettings>(settings);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({ name: '', price: 0, quantity: 100 });
-  const [emailSentToast, setEmailSentToast] = useState(false);
+  
+  // Toast State
+  const [emailToast, setEmailToast] = useState<{visible: boolean, message: string, subtext: string}>({
+      visible: false, message: '', subtext: ''
+  });
 
   const getConnectionName = (id: string) => connections.find(c => c.id === id)?.name || 'Unknown Account';
 
@@ -109,13 +113,27 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
     
     setIsLoading(true);
     setGeneratedReply('');
+    setAnalysisResult(null);
     
     // Use updated settings from local storage if available, otherwise props
     const currentSettings = JSON.parse(localStorage.getItem('social-agent-settings') || JSON.stringify(settings));
     
-    const reply = await generateReply(selectedItem.content, selectedItem.type, currentSettings);
+    const result = await generateReply(selectedItem.content, selectedItem.type, currentSettings);
     
-    setGeneratedReply(reply);
+    setAnalysisResult(result);
+    
+    if (result.replyText) {
+        setGeneratedReply(result.replyText);
+    }
+    
+    // If the action is EMAIL_OWNER and there is NO reply text (e.g. auto-confirm disabled),
+    // we simulate the "Reply" action immediately as an internal process
+    if (result.action === 'EMAIL_OWNER' && !result.replyText && settings.autoReply) {
+        setTimeout(() => {
+             handleSendReply(result);
+        }, 1000);
+    }
+
     setIsLoading(false);
   };
   
@@ -126,13 +144,14 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
   }, [selectedItem]);
 
   useEffect(() => {
-    if (generatedReply && settings.autoReply && !isSent && !isLoading) {
+    // Auto-send only if there IS a reply text generated
+    if (generatedReply && settings.autoReply && !isSent && !isLoading && analysisResult?.replyText) {
       const timer = setTimeout(() => {
-        handleSendReply();
-      }, 1500); // 1.5 second delay for user to see the reply
+        handleSendReply(analysisResult);
+      }, 2000); // 2 second delay for user to see the reply
       return () => clearTimeout(timer);
     }
-  }, [generatedReply, settings.autoReply, isSent, isLoading]);
+  }, [generatedReply, settings.autoReply, isSent, isLoading, analysisResult]);
 
   // Automatically load messages when connections are available
   useEffect(() => {
@@ -148,24 +167,46 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
   const handleSelectItem = (item: InboxItem) => {
     setSelectedItem(item);
     setGeneratedReply('');
+    setAnalysisResult(null);
     setIsSent(false);
   }
 
-  const handleSendReply = () => {
+  const handleSendReply = (currentAnalysis: ReplyResponse | null = analysisResult) => {
     // Simulate sending
     setIsSent(true);
     
-    // Check if the reply was an order confirmation to simulate email
-    if (generatedReply.toLowerCase().includes("confirmed") || generatedReply.toLowerCase().includes("total is")) {
-        setEmailSentToast(true);
-        setTimeout(() => setEmailSentToast(false), 4000);
+    const actionType = currentAnalysis?.action;
+    const orderCode = currentAnalysis?.orderCode;
+    const internalNote = currentAnalysis?.internalNote;
+    
+    if (actionType === 'EMAIL_OWNER') {
+        let title = "Email Notification Sent";
+        let desc = internalNote || "Details forwarded to business owner.";
+        
+        if (orderCode) {
+            title = "Order Processed & Emailed";
+            desc = `Order ${orderCode} confirmed and emailed to owner.`;
+        } else if (currentAnalysis?.category === 'INQUIRY' && !currentAnalysis.replyText) {
+             // Case: Missing information
+             title = "Inquiry Forwarded";
+             desc = "Missing information request emailed to owner.";
+        } else if (currentAnalysis?.category === 'ORDER' && !currentAnalysis.replyText) {
+            // Case: Auto-confirm disabled
+            title = "Order Request Forwarded";
+            desc = "Auto-confirm is off. Request emailed to owner.";
+        }
+
+        setEmailToast({ visible: true, message: title, subtext: desc });
+        setTimeout(() => setEmailToast({ visible: false, message: '', subtext: '' }), 4000);
     }
+
+    const replyTextToSave = currentAnalysis?.replyText || (actionType === 'EMAIL_OWNER' ? 'Action: Emailed Business Owner' : 'Replied');
 
     setTimeout(() => {
         // Mark item as replied instead of removing it
         const updatedItems = inboxItems.map(item => 
             item.id === selectedItem?.id 
-            ? { ...item, replied: true, lastReply: generatedReply } 
+            ? { ...item, replied: true, lastReply: replyTextToSave } 
             : item
         );
         
@@ -173,10 +214,11 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
         
         // Update current selected item state immediately
         if (selectedItem) {
-            setSelectedItem({ ...selectedItem, replied: true, lastReply: generatedReply });
+            setSelectedItem({ ...selectedItem, replied: true, lastReply: replyTextToSave });
         }
 
         setGeneratedReply('');
+        setAnalysisResult(null);
         setIsSent(false);
         
         // If auto-reply is active, move to the next unreplied item
@@ -193,7 +235,7 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
             }
         }
 
-    }, 1000);
+    }, 1500);
   }
 
   // Order Configuration Handlers
@@ -218,8 +260,6 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
 
   const saveOrderSettings = () => {
       localStorage.setItem('social-agent-settings', JSON.stringify(localSettings));
-      // Need to reload window or use a global context to propagate change perfectly, 
-      // but for this mock, we'll just close and rely on reading localStorage in handleGenerateReply
       setShowOrderConfig(false);
   }
   
@@ -241,12 +281,12 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
     <div className="flex flex-col md:flex-row h-[calc(100vh-8rem)] md:h-full gap-6 animate-fade-in relative">
         
       {/* Email Sent Toast */}
-      {emailSentToast && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center animate-fade-in">
-              <CheckCircleIcon className="w-5 h-5 mr-2" />
+      {emailToast.visible && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center animate-fade-in w-max max-w-[90vw]">
+              <CheckCircleIcon className="w-5 h-5 mr-3 flex-shrink-0" />
               <div>
-                  <p className="font-bold">Order Processed</p>
-                  <p className="text-xs opacity-90">Confirmation email sent to owner.</p>
+                  <p className="font-bold">{emailToast.message}</p>
+                  <p className="text-xs opacity-90">{emailToast.subtext}</p>
               </div>
           </div>
       )}
@@ -313,16 +353,27 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
       <div className={`w-full md:w-2/3 h-full ${!selectedItem ? 'hidden md:block' : 'block'}`}>
         {selectedItem ? (
           <Card className="h-full flex flex-col bg-slate-800/50">
-            <Card.Header className="flex flex-row items-center gap-2">
+            <Card.Header className="flex flex-row items-center gap-2 border-b border-slate-700/50 pb-4">
               <button onClick={() => setSelectedItem(null)} className="md:hidden p-1 -ml-2 text-slate-400 hover:text-white">
                 <ArrowLeftIcon className="w-6 h-6" />
               </button>
               <div className="flex-1">
-                  <Card.Title>Conversation with {selectedItem.sender}</Card.Title>
+                  <div className="flex items-center gap-2">
+                    <Card.Title>Conversation with {selectedItem.sender}</Card.Title>
+                    {analysisResult && (
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                            analysisResult.category === 'ORDER' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' :
+                            analysisResult.category === 'INQUIRY' ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' :
+                            'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                        }`}>
+                            {analysisResult.category}
+                        </span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-400">on {getConnectionName(selectedItem.connectionId)} ({selectedItem.platform})</p>
               </div>
             </Card.Header>
-            <Card.Content className="flex-1 flex flex-col gap-4 overflow-y-auto">
+            <Card.Content className="flex-1 flex flex-col gap-4 overflow-y-auto pt-4">
               {/* Original Message */}
               <div className="p-4 rounded-lg bg-slate-700/50">
                 <p className="text-slate-300">{selectedItem.content}</p>
@@ -334,7 +385,7 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
                   <div className="ml-8 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                     <div className="flex items-center gap-2 mb-2">
                         <BotIcon className="w-4 h-4 text-emerald-400" />
-                        <span className="text-xs font-bold text-emerald-400">AI Agent Replied</span>
+                        <span className="text-xs font-bold text-emerald-400">AI Agent Log</span>
                     </div>
                     <p className="text-slate-300">{selectedItem.lastReply}</p>
                   </div>
@@ -343,43 +394,67 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
               {/* Generation Area */}
               {!selectedItem.replied && (
                   <div className="mt-auto pt-4 border-t border-slate-700">
-                    <h3 className="text-lg font-semibold text-white mb-3">AI Agent Reply</h3>
-                    {isLoading && <p className="text-slate-400 animate-pulse">Agent is typing...</p>}
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-white">AI Agent Reply</h3>
+                        {analysisResult?.action === 'EMAIL_OWNER' && (
+                            <span className="flex items-center text-xs font-bold text-amber-400">
+                                <AlertTriangleIcon className="w-3 h-3 mr-1" />
+                                Email Notification Triggered
+                            </span>
+                        )}
+                    </div>
                     
-                    {!isLoading && generatedReply && (
-                      <div className="p-4 rounded-lg bg-slate-700 border border-emerald-500/30">
-                        <h4 className="font-semibold text-emerald-300 mb-2">Generated Reply:</h4>
-                        <textarea 
-                            rows={5} 
-                            value={generatedReply} 
-                            onChange={(e) => setGeneratedReply(e.target.value)} 
-                            className="w-full bg-transparent text-slate-200 resize-none focus:outline-none"
-                            readOnly={settings.autoReply || isSent}
-                        />
+                    {isLoading && <p className="text-slate-400 animate-pulse">Analyzing content and generating response...</p>}
+                    
+                    {!isLoading && (
+                      <div className="p-4 rounded-lg bg-slate-700 border border-emerald-500/30 relative">
+                        {analysisResult?.orderCode && (
+                            <div className="absolute top-2 right-2 bg-slate-900 text-xs text-slate-300 px-2 py-1 rounded font-mono">
+                                Code: {analysisResult.orderCode}
+                            </div>
+                        )}
+
+                        {generatedReply ? (
+                            <>
+                                <h4 className="font-semibold text-emerald-300 mb-2 text-xs uppercase tracking-wider">Proposed Reply:</h4>
+                                <textarea 
+                                    rows={5} 
+                                    value={generatedReply} 
+                                    onChange={(e) => setGeneratedReply(e.target.value)} 
+                                    className="w-full bg-transparent text-slate-200 resize-none focus:outline-none"
+                                    readOnly={settings.autoReply || isSent}
+                                />
+                            </>
+                        ) : (
+                            <div className="text-center py-4 text-slate-400 italic">
+                                <p>No chat reply generated.</p>
+                                <p className="text-sm text-emerald-400 mt-1">Action: {analysisResult?.internalNote || "Emailing Business Owner"}</p>
+                            </div>
+                        )}
                       </div>
                     )}
 
                     <div className="mt-4">
                         {!settings.autoReply && (
                             <Button 
-                                onClick={handleSendReply} 
-                                disabled={isLoading || isSent || !generatedReply}
+                                onClick={() => handleSendReply()} 
+                                disabled={isLoading || isSent || (!generatedReply && analysisResult?.action === 'NONE')}
                                 className="w-full md:w-auto"
                             >
-                                {isSent ? 'Sent!' : 'Send Reply'}
+                                {isSent ? 'Processed!' : (generatedReply ? 'Send Reply' : 'Confirm Action')}
                             </Button>
                         )}
-                        {settings.autoReply && generatedReply && !isLoading && (
+                        {settings.autoReply && !isLoading && (
                              <div className="flex items-center justify-center md:justify-start text-sm text-emerald-400 h-10 px-4 rounded-md bg-emerald-500/10">
                                 {isSent ? (
                                     <>
                                         <CheckCircleIcon className="w-4 h-4 mr-2" />
-                                        <span>Reply Sent!</span>
+                                        <span>Processed Automatically</span>
                                     </>
                                 ) : (
                                     <>
                                         <BotIcon className="w-4 h-4 mr-2 animate-pulse" />
-                                        <span>Sending automatically...</span>
+                                        <span>Processing...</span>
                                     </>
                                 )}
                             </div>
@@ -390,7 +465,7 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
               
               {selectedItem.replied && (
                   <div className="mt-auto pt-4 text-center text-slate-500 text-sm">
-                      <p>This conversation has been marked as replied.</p>
+                      <p>This conversation has been marked as processed.</p>
                   </div>
               )}
 
@@ -424,6 +499,9 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
                             checked={localSettings.autoConfirmOrders || false}
                             onChange={(e) => setLocalSettings({...localSettings, autoConfirmOrders: e.target.checked})}
                         />
+                        <p className="text-xs text-slate-500 mt-2 italic">
+                            Note: If disabled, order requests will be forwarded to your email and the AI will not reply to the chat.
+                        </p>
                       </div>
 
                       {localSettings.autoConfirmOrders && (

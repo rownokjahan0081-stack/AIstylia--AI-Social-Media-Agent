@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserSettings } from '../types';
 import { Card } from './ui/Card';
@@ -29,6 +30,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     contentPillars: [],
     autoPost: false,
     autoReply: false,
+    autoConfirmOrders: false,
+    productCatalog: [],
   });
 
   const handleInputChange = (field: keyof UserSettings, value: any) => {
