@@ -427,3 +427,59 @@ export const analyzeTrends = async (settings: UserSettings): Promise<{ trends: T
     throw new Error("The AI failed to analyze trends. It might be a temporary issue. Please try again.");
   }
 };
+
+export const generateImageFromPrompt = async (prompt: string, settings: UserSettings): Promise<string | null> => {
+  const ai = getAIClient();
+  try {
+      // Use flash-image which supports both inputs and outputs for basic visual tasks or simple generation via text prompt
+      const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+             parts: [{ text: `Generate an image based on this description: ${prompt}. Context: Business is ${settings.businessName}, ${settings.businessDescription}.` }]
+          }
+      });
+      
+      // We look for an inlineData part which contains the image
+      const parts = response.candidates?.[0]?.content?.parts;
+      if (parts) {
+          for (const part of parts) {
+              if (part.inlineData) {
+                   return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+              }
+          }
+      }
+      return null;
+  } catch (error) {
+      console.error("Image generation error:", error);
+      // Fallback or re-throw depending on UX needs
+      throw error;
+  }
+}
+
+export const generateSupportChatReply = async (message: string): Promise<string> => {
+    const ai = getAIClient();
+    const systemPrompt = `You are the AI Support Assistant for "Ai Social Media Agent", a web application for business owners.
+    
+    APP FEATURES:
+    1. Dashboard: Overview of auto-reply status, engagement rates.
+    2. Inbox: AI auto-replies to inquiries, orders, and compliments. User can configure "Order Automation" in settings (product catalog).
+    3. Content Planner: AI generates weekly post schedules based on content pillars.
+    4. Content Library: Users upload assets or generate AI images using Gemini.
+    5. Analytics: Engagement metrics and AI insights.
+    6. Settings: Configure business info, voice, pillars, and product catalog.
+
+    Your goal is to help the user navigate and understand how to use this application. Keep answers concise, friendly, and helpful.
+    If the user asks about the business defined in the settings (e.g. "Do you sell coffee?"), politely explain that you are the App Support Bot, not the Business's Customer Service Agent, but the 'Inbox' tab is where their customers would ask such questions.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: message,
+            config: { systemInstruction: systemPrompt }
+        });
+        return response.text || "I'm sorry, I couldn't process that request.";
+    } catch (error) {
+        console.error("Support chat error:", error);
+        return "I'm currently experiencing technical difficulties. Please try again later.";
+    }
+}

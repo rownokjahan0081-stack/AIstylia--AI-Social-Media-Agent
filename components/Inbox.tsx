@@ -6,50 +6,69 @@ import { generateReply, ReplyResponse } from '../services/geminiService';
 import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon, AlertTriangleIcon } from './Icons';
 import { Input, Checkbox } from './ui/Form';
 
-const createMockItem = (id: number, connections: Connection[]): InboxItem | null => {
+const createMockItem = (id: number, connections: Connection[], settings: UserSettings): InboxItem | null => {
     if (connections.length === 0) return null;
     
     const randomConnection = connections[id % connections.length];
-    
-    // Specific scenarios to demonstrate Agent capabilities
-    // 1. Order Request (Tests "Do not confirm orders" rule)
-    // 2. Comment (Tests "Comment reply")
-    // 3. Order Status/Refund (Tests "Support redirection")
-    // 4. Review (Tests "Gratitude")
-    // 5. General Query
     
     let type = InboxItemType.Message;
     let content = "";
     let sender = `User ${id}`;
     
+    // Determine a product to reference if available, otherwise generic
+    const product = settings.productCatalog && settings.productCatalog.length > 0 
+        ? settings.productCatalog[0].name 
+        : "coffee";
+    
+    const businessName = settings.businessName || "the shop";
+    
     // Use modulo to cycle through specific scenarios based on ID
-    const scenario = id % 5;
+    // We want to cover: 
+    // 1. Inquiry (Relevant)
+    // 2. Inquiry (Irrelevant/Missing Info)
+    // 3. Order (Complete with address)
+    // 4. Order (Incomplete - Missing address)
+    // 5. Compliment (Positive)
+    // 6. Compliment (Negative/Hate)
+    // 7. General Inquiry
+    
+    const scenario = id % 7;
     
     switch(scenario) {
-        case 0: // Order Request
+        case 0: // Order (Complete)
             type = InboxItemType.Message;
             sender = "Sarah Connor";
-            content = "Hi! I'd like to order 1 Bag of House Blend and 2 Chocolate Croissants. My address is 123 Skynet Ave, LA. Can you confirm?";
+            content = `Hi! I'd like to order 2 ${product}. My address is 123 Skynet Ave, LA. Can you confirm?`;
             break;
-        case 1: // Comment
+        case 1: // Order (Incomplete)
+            type = InboxItemType.Message;
+            sender = "John Wick";
+            content = `I need a ${product} ASAP.`;
+            break;
+        case 2: // Compliment (Positive)
             type = InboxItemType.Comment;
             sender = "Mike Ross";
-            content = "This latte art is amazing! 😍 Do you offer classes?";
+            content = `This ${product} is amazing! 😍 Best in town.`;
             break;
-        case 2: // Support / Refund
-            type = InboxItemType.Message;
-            sender = "Jessica Pearson";
-            content = "My order #12345 hasn't arrived yet and it's been an hour. Please refund me.";
-            break;
-        case 3: // Review
+        case 3: // Compliment (Negative)
             type = InboxItemType.Review;
             sender = "Gordon Ramsay";
-            content = "Finally, some good coffee. 5 stars.";
+            content = `The service was terrible and the ${product} was raw. 1 star.`;
             break;
-        default: // General
+        case 4: // Inquiry (Relevant)
+            type = InboxItemType.Message;
+            sender = "Jessica Pearson";
+            content = `What are your opening hours for ${businessName}?`;
+            break;
+        case 5: // Inquiry (Irrelevant / Missing Info)
             type = InboxItemType.Message;
             sender = "Peter Parker";
-            content = "Do you have any gluten-free options available today?";
+            content = "Do you sell spider-web fluid?";
+            break;
+        default: // General
+            type = InboxItemType.Comment;
+            sender = "Tony Stark";
+            content = `Love the vibe at ${businessName}!`;
             break;
     }
 
@@ -156,13 +175,14 @@ export const Inbox: React.FC<InboxProps> = ({ settings, connections, setActivePa
   // Automatically load messages when connections are available
   useEffect(() => {
       if (connections.length > 0 && inboxItems.length === 0) {
-          const newItems = Array.from({ length: 5 }, (_, i) => createMockItem(i + 1, connections)).filter(Boolean) as InboxItem[];
+          // Generate 7 items to cover all scenarios
+          const newItems = Array.from({ length: 7 }, (_, i) => createMockItem(i, connections, settings)).filter(Boolean) as InboxItem[];
           setInboxItems(newItems);
           if (!selectedItem && newItems.length > 0 && window.innerWidth >= 768) {
             setSelectedItem(newItems[0]);
           }
       }
-  }, [connections, inboxItems.length]);
+  }, [connections, inboxItems.length, settings]);
 
   const handleSelectItem = (item: InboxItem) => {
     setSelectedItem(item);

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserSettings } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -9,6 +8,7 @@ import { Input, TextArea, Checkbox } from './ui/Form';
 
 interface OnboardingProps {
   onComplete: (settings: UserSettings) => void;
+  initialSettings?: UserSettings | null;
 }
 
 const steps = [
@@ -19,7 +19,7 @@ const steps = [
   'Connect Accounts',
 ];
 
-export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, initialSettings }) => {
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<UserSettings>({
@@ -33,6 +33,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     autoConfirmOrders: false,
     productCatalog: [],
   });
+
+  // Populate with mock data if provided
+  useEffect(() => {
+      if (initialSettings) {
+          setSettings(initialSettings);
+      }
+  }, [initialSettings]);
 
   const handleInputChange = (field: keyof UserSettings, value: any) => {
     setSettings(prev => ({ ...prev, [field]: value }));

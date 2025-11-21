@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { Inbox } from './components/Inbox';
@@ -10,6 +9,7 @@ import { Auth } from './components/Auth';
 import { Onboarding } from './components/Onboarding';
 import { Connections } from './components/Connections';
 import { Trends } from './components/Trends';
+import { SupportChat } from './components/SupportChat';
 import { DashboardIcon, InboxIcon, Edit3Icon, BarChartIcon, BotIcon, SettingsIcon, LibraryIcon, LogOutIcon, LinkIcon, TrendingUpIcon, MenuIcon, XIcon } from './components/Icons';
 import { UserSettings, Connection, Page } from './types';
 import { subscribeToAuthChanges, logoutUser } from './services/authService';
@@ -89,14 +89,15 @@ const App: React.FC = () => {
              { platform: 'Instagram', id: 'mock-ig-1', name: 'coffee_haven_official', status: 'connected', accessToken: 'mock-token' }
         ];
         
+        // Set the settings state so it can be passed to Onboarding, but enable Onboarding flag
         setSettings(mockSettings);
         setConnections(mockConnections);
         
-        // Persist mock data so it survives a refresh
-        localStorage.setItem('social-agent-settings', JSON.stringify(mockSettings));
+        // We do NOT save to localStorage yet, allowing the user to confirm via Onboarding
+        // However, we save connections for convenience
         localStorage.setItem('social-agent-connections', JSON.stringify(mockConnections));
         
-        setIsOnboarding(false);
+        setIsOnboarding(true);
         return;
     }
 
@@ -175,11 +176,11 @@ const App: React.FC = () => {
   }
 
   if (isOnboarding) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return <Onboarding onComplete={handleOnboardingComplete} initialSettings={settings} />;
   }
 
   return (
-    <div className="flex h-screen bg-slate-800 overflow-hidden">
+    <div className="flex h-screen bg-slate-800 overflow-hidden relative">
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
@@ -245,9 +246,12 @@ const App: React.FC = () => {
            <h1 className="text-lg font-bold text-white">AI Agent</h1>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           {renderPage()}
         </main>
+        
+        {/* Support Chat Widget */}
+        <SupportChat />
       </div>
     </div>
   );
