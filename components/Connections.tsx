@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Connection, Platform, Page } from '../types';
 import { Card } from './ui/Card';
@@ -326,39 +327,19 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         <AlertTriangleIcon className="w-12 h-12 text-amber-500 mx-auto mb-4" />
                         <Card.Title className="text-xl">Connection Issue Detected</Card.Title>
                         
-                        <div className="text-left bg-slate-50 p-4 rounded-lg my-4 text-sm space-y-3 border border-slate-200">
-                           <p className="text-slate-700 font-medium">Why is this happening?</p>
-                           <ul className="list-disc list-inside text-slate-500 space-y-2 text-xs">
-                                <li>
-                                    <strong className="text-slate-800">HTTPS Required:</strong><br/> 
-                                    Facebook Login is disabled on HTTP pages.
-                                </li>
-                                <li>
-                                    <strong className="text-slate-800">"Feature Unavailable" Error:</strong><br/> 
-                                    If you are an admin, ensure you are listed as a Tester in the Meta App Dashboard.
-                                </li>
-                                <li>
-                                    <strong className="text-slate-800">No Pages Selected:</strong><br/>
-                                    You might have clicked "Continue" without selecting pages. Try resetting below.
-                                </li>
-                           </ul>
-                        </div>
+                        {/* Removed 'Why is this happening?' text and setup guide as requested */}
                         
                         <div className="flex flex-col gap-3 mt-4">
                              <Button onClick={() => { toggleSimulation(true); runSimulation(); }} className="bg-violet-600 hover:bg-violet-700">
                                 <ZapIcon className="w-4 h-4 mr-2" />
                                 Enable Demo Mode & Retry
                             </Button>
-                            <Button onClick={() => {
-                                closeModal();
-                                setView('guide');
-                            }} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">
-                                <SettingsIcon className="w-4 h-4 mr-2" />
-                                Open Setup Guide
-                            </Button>
                             <Button onClick={handleResetAndReconnect} className="bg-amber-500 hover:bg-amber-600 text-white">
                                 <RefreshCwIcon className="w-4 h-4 mr-2" />
                                 Reset Permissions & Reconnect
+                            </Button>
+                            <Button onClick={closeModal} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">
+                                Cancel
                             </Button>
                         </div>
                     </div>

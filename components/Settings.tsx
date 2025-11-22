@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserSettings, Product } from '../types';
 import { Card } from './ui/Card';
@@ -102,7 +103,7 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                             <Button 
                                 onClick={handleGenerateSuggestions} 
                                 disabled={isLoading || !localSettings.businessDescription} 
-                                className="bg-white border border-slate-300 text-black hover:bg-slate-50 text-xs h-8 px-3"
+                                className="bg-white border border-slate-300 !text-black hover:bg-slate-50 text-xs h-8 px-3"
                             >
                                 <SparklesIcon className="w-3 h-3 mr-2" />
                                 {isLoading ? 'Generating...' : 'Suggest with AI'}

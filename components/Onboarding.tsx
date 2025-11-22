@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserSettings } from '../types';
 import { Card } from './ui/Card';
@@ -102,7 +103,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, initialSetti
           <>
             <h2 className="text-xl font-bold mb-1 text-slate-900">What are your content pillars?</h2>
             <p className="text-slate-500 text-sm mb-4">These are the key themes your agent will post about.</p>
-            <Button onClick={handleGenerateSuggestions} disabled={isLoading || !settings.businessDescription} className="mb-4 bg-white text-black border border-indigo-200 hover:bg-indigo-50">
+            <Button onClick={handleGenerateSuggestions} disabled={isLoading || !settings.businessDescription} className="mb-4 bg-white !text-black border border-indigo-200 hover:bg-indigo-50">
                 <SparklesIcon className="w-4 h-4 mr-2" />
                 {isLoading ? 'Generating...' : 'Suggest with AI'}
             </Button>

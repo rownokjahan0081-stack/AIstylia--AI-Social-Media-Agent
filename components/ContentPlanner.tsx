@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -320,7 +321,7 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
                         <PlatformIcon platform={post.platform} />
                         <span>{getConnectionName(post.connectionId)}</span>
                       </div>
-                      <Button onClick={() => handleOpenImproveModal(post)} className="bg-white border border-slate-200 text-black hover:bg-slate-50 h-8 px-2 text-xs shadow-sm">
+                      <Button onClick={() => handleOpenImproveModal(post)} className="bg-white border border-slate-200 !text-black hover:bg-slate-50 h-8 px-2 text-xs shadow-sm">
                         <SparklesIcon className="w-3 h-3 mr-1.5" />
                         Improve
                       </Button>
