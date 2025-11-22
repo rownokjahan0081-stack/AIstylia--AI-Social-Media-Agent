@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -10,18 +9,18 @@ import { SparklesIcon, CheckCircleIcon, ClockIcon, AlertTriangleIcon, CameraIcon
 const PostStatusIndicator = ({ status }: { status: Post['status']}) => {
     switch (status) {
         case 'pending_approval':
-            return <div className="flex items-center text-xs font-semibold text-amber-400"><AlertTriangleIcon className="w-3 h-3 mr-1.5"/> Needs Approval</div>
+            return <div className="flex items-center text-xs font-semibold text-amber-500"><AlertTriangleIcon className="w-3 h-3 mr-1.5"/> Needs Approval</div>
         case 'scheduled':
-            return <div className="flex items-center text-xs font-semibold text-sky-400"><ClockIcon className="w-3 h-3 mr-1.5"/> Scheduled</div>
+            return <div className="flex items-center text-xs font-semibold text-indigo-500"><ClockIcon className="w-3 h-3 mr-1.5"/> Scheduled</div>
         case 'posted':
-             return <div className="flex items-center text-xs font-semibold text-emerald-400"><CheckCircleIcon className="w-3 h-3 mr-1.5"/> Posted</div>
+             return <div className="flex items-center text-xs font-semibold text-emerald-500"><CheckCircleIcon className="w-3 h-3 mr-1.5"/> Posted</div>
     }
 }
 
 const PlatformIcon = ({ platform }: { platform: Platform }) => {
   switch (platform) {
-    case 'Facebook': return <FacebookIcon className="w-4 h-4 text-blue-500" />;
-    case 'Instagram': return <InstagramIcon className="w-4 h-4 text-pink-500" />;
+    case 'Facebook': return <FacebookIcon className="w-4 h-4 text-blue-600" />;
+    case 'Instagram': return <InstagramIcon className="w-4 h-4 text-pink-600" />;
   }
 };
 
@@ -218,11 +217,11 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
   return (
     <div className="animate-fade-in">
       <header className="mb-8">
-        <h1 className="text-4xl font-extrabold text-white tracking-tight">Content Planner</h1>
-        <p className="text-slate-400 mt-2">Generate a library-aware 7-day content plan with AI and approve it with one click.</p>
+        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Content Planner</h1>
+        <p className="text-slate-600 mt-2">Generate a library-aware 7-day content plan with AI and approve it with one click.</p>
       </header>
       
-      <Card className="bg-slate-800/50 mb-8">
+      <Card className="mb-8">
         <Card.Header>
           <Card.Title className="flex items-center gap-2">
               Plan Generation
@@ -236,16 +235,16 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
                 <><SparklesIcon className="w-5 h-5 mr-2"/> Generate 1-Week Content Plan</>
             )}
           </Button>
-          {error && <p className="text-red-400 mt-4 text-sm">{error}</p>}
-           {connections.length === 0 && <p className="text-amber-400 mt-4 text-sm">Please connect a social account to enable plan generation.</p>}
+          {error && <p className="text-red-500 mt-4 text-sm">{error}</p>}
+           {connections.length === 0 && <p className="text-amber-500 mt-4 text-sm">Please connect a social account to enable plan generation.</p>}
         </Card.Content>
       </Card>
 
       {weeklyPlan.length > 0 && (
-        <div className="mb-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md shadow-lg">
+        <div className="mb-8 p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between sticky top-0 z-20 shadow-lg">
             <div>
-                <h2 className="text-xl font-bold text-white">Weekly Content Plan</h2>
-                <p className="text-slate-400 text-sm">Review the generated posts for the upcoming week.</p>
+                <h2 className="text-xl font-bold text-slate-900">Weekly Content Plan</h2>
+                <p className="text-slate-500 text-sm">Review the generated posts for the upcoming week.</p>
             </div>
             {planStatus === 'pending' && (
                 <Button onClick={handleApprovePlan} className="bg-emerald-600 hover:bg-emerald-700">
@@ -254,7 +253,7 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
                 </Button>
             )}
              {planStatus === 'approved' && (
-                <div className="flex items-center text-emerald-400 font-semibold px-4 py-2 rounded-md bg-emerald-500/10">
+                <div className="flex items-center text-emerald-600 font-semibold px-4 py-2 rounded-md bg-emerald-50">
                     <CheckCircleIcon className="w-5 h-5 mr-2" />
                     Plan Approved & Scheduled
                 </div>
@@ -265,19 +264,19 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
       {weeklyPlan.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
           {weeklyPlan.map(post => (
-            <Card key={post.id} className="bg-slate-800/50 flex flex-col overflow-hidden relative group">
+            <Card key={post.id} className="flex flex-col overflow-hidden relative group">
                <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                   <button 
                     onClick={() => handleRegenerateSingle(post)} 
                     disabled={regeneratingId === post.id}
-                    className="bg-slate-900/80 hover:bg-sky-600 text-white p-2 rounded-full backdrop-blur-sm transition-colors"
+                    className="bg-white/90 hover:bg-indigo-100 text-indigo-600 p-2 rounded-full backdrop-blur-sm transition-colors shadow-sm"
                     title="Regenerate this post"
                   >
                      <RefreshCwIcon className={`w-4 h-4 ${regeneratingId === post.id ? 'animate-spin' : ''}`} />
                   </button>
                   <button 
                     onClick={() => handleDeletePost(post.id)} 
-                    className="bg-slate-900/80 hover:bg-red-600 text-white p-2 rounded-full backdrop-blur-sm transition-colors"
+                    className="bg-white/90 hover:bg-red-100 text-red-600 p-2 rounded-full backdrop-blur-sm transition-colors shadow-sm"
                     title="Remove post"
                   >
                      <TrashIcon className="w-4 h-4" />
@@ -288,10 +287,10 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
                  <img src={post.asset.url} alt={post.asset.name} className="w-full h-48 object-cover" />
                )}
                {regeneratingId === post.id && (
-                   <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-20">
+                   <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-20">
                        <div className="text-center">
-                            <RefreshCwIcon className="w-8 h-8 text-sky-400 animate-spin mx-auto mb-2" />
-                            <p className="text-white font-semibold">Regenerating...</p>
+                            <RefreshCwIcon className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-2" />
+                            <p className="text-slate-900 font-semibold">Regenerating...</p>
                        </div>
                    </div>
                )}
@@ -299,29 +298,29 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
                   <div className="flex justify-between items-start mb-3">
                       <div>
                         <Card.Title>{getDayForPost(post)}</Card.Title>
-                        <p className="text-xs text-slate-400">{post.scheduledTime.toLocaleDateString()}</p>
+                        <p className="text-xs text-slate-500">{post.scheduledTime.toLocaleDateString()}</p>
                       </div>
                       <PostStatusIndicator status={post.status} />
                   </div>
-                  <p className="text-slate-300 mb-3 text-sm flex-1 whitespace-pre-wrap">{post.content}</p>
-                  <p className="text-sky-400/80 text-xs font-mono mb-4">{post.hashtags.join(' ')}</p>
+                  <p className="text-slate-700 mb-3 text-sm flex-1 whitespace-pre-wrap">{post.content}</p>
+                  <p className="text-indigo-600 text-xs font-mono mb-4">{post.hashtags.join(' ')}</p>
                   
                   {!post.asset && post.visualSuggestion && (
-                    <div className="p-3 rounded-md bg-slate-700/50 border border-slate-700 mb-4">
-                      <div className="flex items-center text-sm font-semibold text-slate-300 mb-1">
+                    <div className="p-3 rounded-md bg-slate-50 border border-slate-200 mb-4">
+                      <div className="flex items-center text-sm font-semibold text-slate-700 mb-1">
                         <CameraIcon className="w-4 h-4 mr-2" />
                         Visual Suggestion
                       </div>
-                      <p className="text-xs text-slate-400">{post.visualSuggestion}</p>
+                      <p className="text-xs text-slate-500">{post.visualSuggestion}</p>
                     </div>
                   )}
 
-                  <div className="mt-auto border-t border-slate-700 pt-3 flex justify-between items-center text-xs text-slate-400">
+                  <div className="mt-auto border-t border-slate-100 pt-3 flex justify-between items-center text-xs text-slate-500">
                       <div className="flex items-center gap-2">
                         <PlatformIcon platform={post.platform} />
                         <span>{getConnectionName(post.connectionId)}</span>
                       </div>
-                      <Button onClick={() => handleOpenImproveModal(post)} className="bg-slate-700 hover:bg-slate-600 h-8 px-2 text-xs">
+                      <Button onClick={() => handleOpenImproveModal(post)} className="bg-white border border-slate-200 text-black hover:bg-slate-50 h-8 px-2 text-xs shadow-sm">
                         <SparklesIcon className="w-3 h-3 mr-1.5" />
                         Improve
                       </Button>
@@ -331,38 +330,38 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
           ))}
         </div>
       ) : (
-        <Card className="bg-slate-800/50 text-center py-16">
-            <p className="text-slate-400">No content plan generated yet.</p>
-            <p className="text-slate-500 text-sm">Click the button above to have the AI create a plan for you.</p>
+        <Card className="text-center py-16">
+            <p className="text-slate-500">No content plan generated yet.</p>
+            <p className="text-slate-400 text-sm">Click the button above to have the AI create a plan for you.</p>
         </Card>
       )}
       
       {isImproveModalOpen && postToImprove && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in-fast">
-              <Card className="w-full max-w-2xl bg-slate-800">
+              <Card className="w-full max-w-2xl">
                   <Card.Header>
                       <Card.Title>Improve Post with AI</Card.Title>
-                      <p className="text-sm text-slate-400">Select a variation to update your post.</p>
+                      <p className="text-sm text-slate-500">Select a variation to update your post.</p>
                   </Card.Header>
                   <Card.Content>
-                      <div className="mb-4 p-4 rounded-lg bg-slate-900 border border-slate-700">
-                          <h4 className="text-sm font-semibold text-slate-400 mb-2">Original Post</h4>
-                          <p className="text-slate-300">{postToImprove.content}</p>
+                      <div className="mb-4 p-4 rounded-lg bg-slate-50 border border-slate-200">
+                          <h4 className="text-sm font-semibold text-slate-600 mb-2">Original Post</h4>
+                          <p className="text-slate-800">{postToImprove.content}</p>
                       </div>
                       
                       {isImproving && (
                           <div className="text-center py-8">
-                              <SparklesIcon className="w-8 h-8 text-sky-400 mx-auto animate-pulse" />
-                              <p className="text-slate-400 mt-2">Generating improved versions...</p>
+                              <SparklesIcon className="w-8 h-8 text-indigo-600 mx-auto animate-pulse" />
+                              <p className="text-slate-500 mt-2">Generating improved versions...</p>
                           </div>
                       )}
 
                       {!isImproving && improvedSuggestions.length > 0 && (
                           <div className="space-y-3">
-                              <h4 className="text-sm font-semibold text-slate-400">AI Suggestions</h4>
+                              <h4 className="text-sm font-semibold text-slate-600">AI Suggestions</h4>
                               {improvedSuggestions.map((suggestion, index) => (
-                                  <div key={index} className="p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700/80 group">
-                                      <p className="text-slate-200">{suggestion}</p>
+                                  <div key={index} className="p-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 group shadow-sm transition-all">
+                                      <p className="text-slate-800">{suggestion}</p>
                                       <div className="text-right mt-2">
                                         <Button onClick={() => handleSelectSuggestion(suggestion)} className="bg-emerald-600 hover:bg-emerald-700 h-8 px-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
                                           Use This Version
@@ -373,11 +372,11 @@ export const ContentPlanner: React.FC<{ settings: UserSettings, connections: Con
                           </div>
                       )}
                       {!isImproving && improvedSuggestions.length === 0 && (
-                          <p className="text-center text-amber-400 text-sm py-4">The AI couldn't generate suggestions. Please try again.</p>
+                          <p className="text-center text-amber-500 text-sm py-4">The AI couldn't generate suggestions. Please try again.</p>
                       )}
                   </Card.Content>
                   <div className="p-6 pt-0 flex justify-end">
-                      <Button onClick={handleCloseImproveModal} className="bg-slate-600 hover:bg-slate-700">Close</Button>
+                      <Button onClick={handleCloseImproveModal} className="bg-slate-200 text-slate-800 hover:bg-slate-300">Close</Button>
                   </div>
               </Card>
           </div>

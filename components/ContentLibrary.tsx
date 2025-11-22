@@ -6,9 +6,6 @@ import { Input, TextArea } from './ui/Form';
 import { CheckCircleIcon, RefreshCwIcon, SparklesIcon, DownloadCloudIcon, CameraIcon, LinkIcon } from './Icons';
 import { generateImageFromPrompt } from '../services/geminiService';
 
-// We need access to settings to provide context for image generation
-// Since ContentLibrary didn't have props before, we update it to accept settings if possible, 
-// or retrieve from localStorage as a fallback since it's a top-level component in App.tsx now.
 export const ContentLibrary: React.FC = () => {
     const [assets, setAssets] = useState<ContentAsset[]>([]);
     const [activeTab, setActiveTab] = useState<'upload' | 'generate'>('upload');
@@ -145,22 +142,22 @@ export const ContentLibrary: React.FC = () => {
     return (
         <div className="animate-fade-in">
             <header className="mb-8">
-                <h1 className="text-4xl font-extrabold text-white tracking-tight">Content Library</h1>
-                <p className="text-slate-400 mt-2">Upload assets or generate AI imagery for your content plan.</p>
+                <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Content Library</h1>
+                <p className="text-slate-600 mt-2">Upload assets or generate AI imagery for your content plan.</p>
             </header>
 
-            <Card className="bg-slate-800/50 mb-8">
+            <Card className="mb-8">
                 <Card.Header>
-                    <div className="flex items-center gap-4 border-b border-slate-700 pb-1">
+                    <div className="flex items-center gap-4 border-b border-slate-200 pb-1">
                         <button 
                             onClick={() => setActiveTab('upload')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'upload' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'upload' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
                         >
                             Upload File
                         </button>
                         <button 
                             onClick={() => setActiveTab('generate')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'generate' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'generate' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
                         >
                             Generate with AI
                         </button>
@@ -170,12 +167,12 @@ export const ContentLibrary: React.FC = () => {
                     {activeTab === 'upload' ? (
                         <div className="space-y-4 animate-fade-in">
                                 <div>
-                                <label htmlFor="assetFile" className="block text-sm font-medium text-slate-400 mb-1">Image File</label>
-                                <input type="file" id="assetFile" accept="image/*" onChange={handleFileChange} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-500 file:text-white hover:file:bg-sky-600"/>
+                                <label htmlFor="assetFile" className="block text-sm font-medium text-slate-600 mb-1">Image File</label>
+                                <input type="file" id="assetFile" accept="image/*" onChange={handleFileChange} className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"/>
                             </div>
                             <div>
-                                <label htmlFor="assetContext" className="block text-sm font-medium text-slate-400 mb-1">Context / Description</label>
-                                <textarea id="assetContext" value={newAssetContext} onChange={e => setNewAssetContext(e.target.value)} rows={3} placeholder="Describe the image and what it represents." className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none resize-none"></textarea>
+                                <label htmlFor="assetContext" className="block text-sm font-medium text-slate-600 mb-1">Context / Description</label>
+                                <textarea id="assetContext" value={newAssetContext} onChange={e => setNewAssetContext(e.target.value)} rows={3} placeholder="Describe the image and what it represents." className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 focus:outline-none resize-none"></textarea>
                             </div>
                             <Button onClick={handleAddAsset} disabled={!file || !newAssetContext}>Add to Library</Button>
                         </div>
@@ -190,8 +187,8 @@ export const ContentLibrary: React.FC = () => {
                                         onChange={(e) => setPrompt(e.target.value)}
                                     />
                                     
-                                    <div className="bg-slate-900/30 p-4 rounded-lg border border-slate-700">
-                                        <label className="block text-sm font-medium text-slate-400 mb-2">Reference Image (Optional)</label>
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">Reference Image (Optional)</label>
                                         <p className="text-xs text-slate-500 mb-3">Upload a file or select from library to guide the generation.</p>
                                         
                                         <div className="space-y-3">
@@ -200,7 +197,7 @@ export const ContentLibrary: React.FC = () => {
                                                     type="file" 
                                                     accept="image/*" 
                                                     onChange={handleReferenceFileChange} 
-                                                    className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-white hover:file:bg-slate-600"
+                                                    className="block w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300"
                                                 />
                                             </div>
                                             
@@ -209,7 +206,7 @@ export const ContentLibrary: React.FC = () => {
                                                 <select 
                                                     value={selectedReferenceId} 
                                                     onChange={handleReferenceSelectChange}
-                                                    className="flex-1 bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-xs text-white focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                                                    className="flex-1 bg-white border border-slate-300 rounded-md px-2 py-1.5 text-xs text-slate-900 focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                                                 >
                                                     <option value="">Select from Content Library...</option>
                                                     {assets.map(a => (
@@ -219,7 +216,7 @@ export const ContentLibrary: React.FC = () => {
                                             </div>
 
                                             {referenceImage && (
-                                                <div className="relative mt-2 w-20 h-20 rounded-md overflow-hidden border border-sky-500/50">
+                                                <div className="relative mt-2 w-20 h-20 rounded-md overflow-hidden border border-indigo-500/50">
                                                     <img src={referenceImage} alt="Reference" className="w-full h-full object-cover" />
                                                     <button 
                                                         onClick={() => {
@@ -236,7 +233,7 @@ export const ContentLibrary: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <Button onClick={handleGenerateImage} disabled={isGenerating || !prompt} className="w-full bg-purple-600 hover:bg-purple-700">
+                                    <Button onClick={handleGenerateImage} disabled={isGenerating || !prompt} className="w-full bg-violet-600 hover:bg-violet-700">
                                         {isGenerating ? (
                                             <><RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> Generating Image...</>
                                         ) : (
@@ -244,18 +241,18 @@ export const ContentLibrary: React.FC = () => {
                                         )}
                                     </Button>
                                 </div>
-                                <div className="flex-1 bg-slate-900/50 rounded-lg border border-slate-700 flex items-center justify-center min-h-[300px] relative overflow-hidden">
+                                <div className="flex-1 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-center min-h-[300px] relative overflow-hidden">
                                     {generatedImage ? (
                                         <div className="relative w-full h-full group">
                                             <img src={generatedImage} alt="AI Generated" className="w-full h-full object-contain" />
-                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-black/60 backdrop-blur-sm flex justify-center">
+                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-sm flex justify-center border-t border-slate-200">
                                                 <Button onClick={handleSaveGenerated} className="bg-emerald-600 hover:bg-emerald-700 h-8 text-xs">
                                                     <DownloadCloudIcon className="w-3 h-3 mr-2"/> Save to Library
                                                 </Button>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="text-slate-500 text-center p-4">
+                                        <div className="text-slate-400 text-center p-4">
                                             <CameraIcon className="w-12 h-12 mx-auto mb-2 opacity-20"/>
                                             <p className="text-sm">Preview will appear here</p>
                                         </div>
@@ -269,12 +266,12 @@ export const ContentLibrary: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {assets.map(asset => (
-                    <Card key={asset.id} className="bg-slate-800/50 group relative">
+                    <Card key={asset.id} className="group relative">
                         <img src={asset.url} alt={asset.name} className="rounded-t-xl aspect-square object-cover w-full" />
                         <div className="p-4">
-                            <p className="text-sm text-slate-300 line-clamp-3">{asset.context}</p>
+                            <p className="text-sm text-slate-600 line-clamp-3">{asset.context}</p>
                         </div>
-                        <button onClick={() => handleDeleteAsset(asset.id)} className="absolute top-2 right-2 bg-red-500/80 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleDeleteAsset(asset.id)} className="absolute top-2 right-2 bg-white/90 text-red-600 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-white">
                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </Card>

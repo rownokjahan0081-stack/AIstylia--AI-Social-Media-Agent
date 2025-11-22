@@ -81,7 +81,8 @@ const App: React.FC = () => {
                 { id: "p2", name: "Chocolate Croissant", price: 4.5, quantity: 20 },
                 { id: "p3", name: "Cold Brew Kit", price: 25, quantity: 15 },
                 { id: "p4", name: "Ceramic Mug", price: 12, quantity: 30 }
-            ]
+            ],
+            replyGuidelines: []
         };
         
         const mockConnections: Connection[] = [
@@ -129,13 +130,13 @@ const App: React.FC = () => {
   };
 
   const renderPage = () => {
-    if (!settings) return <div className="text-center p-10">Loading settings...</div>;
+    if (!settings) return <div className="text-center p-10 text-slate-500">Loading settings...</div>;
     
     switch (activePage) {
       case 'dashboard':
         return <Dashboard setActivePage={handlePageChange} settings={settings} />;
       case 'inbox':
-        return <Inbox settings={settings} connections={connections} setActivePage={handlePageChange} />;
+        return <Inbox settings={settings} setSettings={setSettings} connections={connections} setActivePage={handlePageChange} />;
       case 'content':
         return <ContentPlanner settings={settings} connections={connections} />;
       case 'analytics':
@@ -147,7 +148,7 @@ const App: React.FC = () => {
       case 'settings':
         return <Settings settings={settings} setSettings={setSettings} />;
       case 'connections':
-        return <Connections connections={connections} setConnections={setConnections} />;
+        return <Connections connections={connections} setConnections={setConnections} setActivePage={handlePageChange} />;
       default:
         return <Dashboard setActivePage={handlePageChange} settings={settings} />;
     }
@@ -158,8 +159,8 @@ const App: React.FC = () => {
       onClick={() => handlePageChange(page)}
       className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
         activePage === page
-          ? 'bg-sky-500 text-white'
-          : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+          ? 'bg-indigo-50 text-indigo-600'
+          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
       }`}
     >
       {icon}
@@ -168,7 +169,7 @@ const App: React.FC = () => {
   );
   
   if (isLoading) {
-    return <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-white">Loading Agent...</div>;
+    return <div className="flex h-screen w-full items-center justify-center bg-slate-50 text-indigo-600">Loading Agent...</div>;
   }
 
   if (!user) {
@@ -180,34 +181,34 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-800 overflow-hidden relative">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
       {/* Sidebar - responsive drawer */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 bg-slate-900 p-4 border-r border-slate-700 flex flex-col transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 bg-white p-4 border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 shadow-sm`}>
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">
-              <BotIcon className="w-8 h-8 text-sky-400"/>
-              <h1 className="text-xl font-bold ml-2 text-white">AI Agent</h1>
+              <BotIcon className="w-8 h-8 text-indigo-600"/>
+              <h1 className="text-xl font-bold ml-2 text-slate-900">AI Agent</h1>
           </div>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white">
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-500 hover:text-slate-800">
             <XIcon className="w-6 h-6" />
           </button>
         </div>
         
-        <div className="mb-6 px-2 flex items-center gap-3 pb-6 border-b border-slate-800">
+        <div className="mb-6 px-2 flex items-center gap-3 pb-6 border-b border-slate-200">
            {user.photoURL ? (
-               <img src={user.photoURL} alt="User" className="w-10 h-10 rounded-full border border-slate-700" />
+               <img src={user.photoURL} alt="User" className="w-10 h-10 rounded-full border border-slate-200" />
            ) : (
-               <div className="w-10 h-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-bold">
+               <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
                    {user.email?.charAt(0).toUpperCase()}
                </div>
            )}
            <div className="overflow-hidden">
-               <p className="text-sm font-medium text-white truncate">{user.displayName || 'User'}</p>
+               <p className="text-sm font-medium text-slate-900 truncate">{user.displayName || 'User'}</p>
                <p className="text-xs text-slate-500 truncate">{user.email}</p>
            </div>
         </div>
@@ -225,12 +226,12 @@ const App: React.FC = () => {
         <div className="mt-auto pt-4">
           <button
               onClick={handleLogout}
-              className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 text-slate-400 hover:bg-red-500/20 hover:text-red-400"
+              className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 text-slate-500 hover:bg-red-50 hover:text-red-600"
             >
               <LogOutIcon className="w-5 h-5" />
               <span className="ml-3">Log Out</span>
             </button>
-          <div className="mt-4 text-center text-slate-500 text-xs">
+          <div className="mt-4 text-center text-slate-400 text-xs">
             <p>&copy; 2024 Social AI Inc.</p>
           </div>
         </div>
@@ -239,11 +240,11 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile Header */}
-        <header className="md:hidden bg-slate-900 border-b border-slate-700 p-4 flex items-center gap-4 z-30">
-           <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-400 hover:text-white">
+        <header className="md:hidden bg-white border-b border-slate-200 p-4 flex items-center gap-4 z-30">
+           <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-500 hover:text-slate-800">
              <MenuIcon className="w-6 h-6" />
            </button>
-           <h1 className="text-lg font-bold text-white">AI Agent</h1>
+           <h1 className="text-lg font-bold text-slate-900">AI Agent</h1>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
@@ -256,5 +257,4 @@ const App: React.FC = () => {
     </div>
   );
 };
-
 export default App;

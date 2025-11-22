@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Post, UserSettings } from '../types';
@@ -66,32 +65,32 @@ export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
   return (
     <div className="animate-fade-in">
       <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">Performance Analytics</h1>
-        <p className="text-slate-400 mt-2 text-sm md:text-base">Track your engagement and understand what's working.</p>
+        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Performance Analytics</h1>
+        <p className="text-slate-600 mt-2 text-sm md:text-base">Track your engagement and understand what's working.</p>
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-slate-800/50">
+        <Card>
           <Card.Header><Card.Title>Total Engagement</Card.Title></Card.Header>
           <Card.Content>
-            <p className="text-3xl md:text-4xl font-bold text-white">{totalEngagement.toLocaleString()}</p>
+            <p className="text-3xl md:text-4xl font-bold text-indigo-600">{totalEngagement.toLocaleString()}</p>
           </Card.Content>
         </Card>
-        <Card className="bg-slate-800/50">
+        <Card>
           <Card.Header><Card.Title>Average Engagement</Card.Title></Card.Header>
           <Card.Content>
-            <p className="text-3xl md:text-4xl font-bold text-white">{averageEngagement.toLocaleString()}</p>
+            <p className="text-3xl md:text-4xl font-bold text-indigo-600">{averageEngagement.toLocaleString()}</p>
           </Card.Content>
         </Card>
-        <Card className="bg-slate-800/50">
+        <Card>
           <Card.Header><Card.Title>Top Platform</Card.Title></Card.Header>
           <Card.Content>
-            <p className="text-3xl md:text-4xl font-bold text-white">{topPlatform}</p>
+            <p className="text-3xl md:text-4xl font-bold text-indigo-600">{topPlatform}</p>
           </Card.Content>
         </Card>
       </div>
 
-      <Card className="bg-slate-800/50">
+      <Card>
         <Card.Header>
           <Card.Title>Engagement by Post</Card.Title>
         </Card.Header>
@@ -102,19 +101,19 @@ export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
                     data={chartData}
                     margin={{ top: 5, right: 20, left: -10, bottom: 5, }}
                     >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8' }} />
-                    <YAxis tick={{ fill: '#94a3b8' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="name" tick={{ fill: '#64748b' }} />
+                    <YAxis tick={{ fill: '#64748b' }} />
                     <Tooltip
-                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
-                        cursor={{ fill: 'rgba(14, 165, 233, 0.1)' }}
+                        contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#0f172a', borderRadius: '0.5rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        cursor={{ fill: 'rgba(79, 70, 229, 0.1)' }}
                     />
-                    <Legend wrapperStyle={{ color: '#94a3b8' }}/>
-                    <Bar dataKey="engagement" fill="#38bdf8" />
+                    <Legend wrapperStyle={{ color: '#64748b' }}/>
+                    <Bar dataKey="engagement" fill="#4f46e5" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                <div className="flex flex-col items-center justify-center h-full text-slate-500">
                     <p className="mb-4 text-center">No performance data yet. Post some content to see your analytics.</p>
                     <Button onClick={() => setPostData(generateMockData())}>Generate Sample Data</Button>
                 </div>
@@ -123,12 +122,12 @@ export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
       </Card>
       
       <div className="mt-8">
-        <Card className="bg-slate-800/50">
+        <Card>
           <Card.Header>
             <Card.Title className="flex items-center gap-2">
                 AI-Powered Insights
             </Card.Title>
-            <p className="text-sm text-slate-400 mt-1">Let the agent analyze your post performance and provide actionable feedback.</p>
+            <p className="text-sm text-slate-500 mt-1">Let the agent analyze your post performance and provide actionable feedback.</p>
           </Card.Header>
           <Card.Content>
             {postData.length > 0 ? (
@@ -138,8 +137,8 @@ export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
                 </Button>
                 
                 {analysis && !isAnalyzing && (
-                  <div className="mt-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-                    <p className="text-slate-200 whitespace-pre-wrap">{analysis}</p>
+                  <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-slate-800 whitespace-pre-wrap">{analysis}</p>
                   </div>
                 )}
               </>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserSettings, Product } from '../types';
 import { Card } from './ui/Card';
@@ -75,12 +74,12 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
     return (
         <div className="animate-fade-in max-w-4xl mx-auto">
             <header className="mb-8">
-                <h1 className="text-4xl font-extrabold text-white tracking-tight">Agent Settings</h1>
-                <p className="text-slate-400 mt-2">Fine-tune the core instructions for your AI agent. Manage social media accounts in the <span className="text-sky-400">Connections</span> tab.</p>
+                <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Agent Settings</h1>
+                <p className="text-slate-600 mt-2">Fine-tune the core instructions for your AI agent. Manage social media accounts in the <span className="text-indigo-600">Connections</span> tab.</p>
             </header>
 
             <div className="space-y-6">
-                <Card className="bg-slate-800/50">
+                <Card>
                     <Card.Header><Card.Title>Business Information</Card.Title></Card.Header>
                     <Card.Content className="space-y-4">
                         <Input label="Business Name" value={localSettings.businessName} onChange={e => handleInputChange('businessName', e.target.value)} />
@@ -88,7 +87,7 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                     </Card.Content>
                 </Card>
                 
-                <Card className="bg-slate-800/50">
+                <Card>
                     <Card.Header><Card.Title>Audience & Voice</Card.Title></Card.Header>
                     <Card.Content className="space-y-4">
                         <TextArea label="Target Audience" value={localSettings.targetAudience} onChange={e => handleInputChange('targetAudience', e.target.value)} />
@@ -96,14 +95,14 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                     </Card.Content>
                 </Card>
 
-                <Card className="bg-slate-800/50">
+                <Card>
                     <Card.Header>
                         <div className="flex justify-between items-center">
                             <Card.Title>Content Pillars</Card.Title>
                             <Button 
                                 onClick={handleGenerateSuggestions} 
                                 disabled={isLoading || !localSettings.businessDescription} 
-                                className="bg-slate-700 hover:bg-slate-600 text-xs h-8 px-3"
+                                className="bg-white border border-slate-300 text-black hover:bg-slate-50 text-xs h-8 px-3"
                             >
                                 <SparklesIcon className="w-3 h-3 mr-2" />
                                 {isLoading ? 'Generating...' : 'Suggest with AI'}
@@ -116,23 +115,23 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                                 const newPillars = [...localSettings.contentPillars];
                                 newPillars[index] = e.target.value;
                                 handleInputChange('contentPillars', newPillars);
-                            }} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white" />
+                            }} className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-slate-900" />
                         ))}
                         {localSettings.contentPillars.length < 5 && (
-                            <button onClick={addPillar} className="text-sky-400 text-sm hover:text-sky-300 transition-colors mt-2">
+                            <button onClick={addPillar} className="text-indigo-600 text-sm hover:text-indigo-500 transition-colors mt-2">
                                 + Add Pillar
                             </button>
                         )}
                     </Card.Content>
                 </Card>
 
-                <Card className="bg-slate-800/50">
+                <Card>
                     <Card.Header><Card.Title>Automation Rules</Card.Title></Card.Header>
                     <Card.Content className="space-y-4">
                         <Checkbox label="Enable Auto-Reply" description="Allow AI to reply without approval." checked={localSettings.autoReply} onChange={e => handleInputChange('autoReply', e.target.checked)} />
                         <Checkbox label="Enable Auto-Post" description="Allow AI to publish posts without approval." checked={localSettings.autoPost} onChange={e => handleInputChange('autoPost', e.target.checked)} />
                         
-                        <div className="border-t border-slate-700 pt-4 mt-4">
+                        <div className="border-t border-slate-200 pt-4 mt-4">
                              <Checkbox 
                                 label="Enable Auto-Confirm Orders" 
                                 description="Allow AI to calculate totals and confirm orders based on your catalog." 
@@ -141,17 +140,17 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                              />
                              
                              {(localSettings.autoConfirmOrders) && (
-                                <div className="mt-4 pl-4 border-l-2 border-slate-700">
-                                    <h3 className="text-sm font-semibold text-slate-300 mb-3">Product Catalog</h3>
+                                <div className="mt-4 pl-4 border-l-2 border-slate-200">
+                                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Product Catalog</h3>
                                     
                                     <div className="space-y-3 mb-4">
                                         {localSettings.productCatalog && localSettings.productCatalog.map(p => (
-                                            <div key={p.id} className="flex items-center justify-between bg-slate-900/50 p-3 rounded-md border border-slate-700">
+                                            <div key={p.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-md border border-slate-200">
                                                 <div>
-                                                    <p className="font-medium text-white">{p.name}</p>
-                                                    <p className="text-xs text-slate-400">${p.price} • Qty: {p.quantity}</p>
+                                                    <p className="font-medium text-slate-900">{p.name}</p>
+                                                    <p className="text-xs text-slate-500">${p.price} • Qty: {p.quantity}</p>
                                                 </div>
-                                                <button onClick={() => handleRemoveProduct(p.id)} className="text-red-400 hover:text-red-300 text-xs font-medium">Remove</button>
+                                                <button onClick={() => handleRemoveProduct(p.id)} className="text-red-500 hover:text-red-600 text-xs font-medium">Remove</button>
                                             </div>
                                         ))}
                                         {(!localSettings.productCatalog || localSettings.productCatalog.length === 0) && (
@@ -159,16 +158,16 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => 
                                         )}
                                     </div>
 
-                                    <div className="bg-slate-700/30 p-4 rounded-md">
+                                    <div className="bg-slate-100/50 p-4 rounded-md">
                                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                                             <div className="md:col-span-5">
-                                                <input type="text" placeholder="Product Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white" />
+                                                <input type="text" placeholder="Product Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm text-slate-900" />
                                             </div>
                                             <div className="md:col-span-3">
-                                                <input type="number" placeholder="Price" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white" />
+                                                <input type="number" placeholder="Price" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm text-slate-900" />
                                             </div>
                                             <div className="md:col-span-2">
-                                                <input type="number" placeholder="Qty" value={newProduct.quantity} onChange={e => setNewProduct({...newProduct, quantity: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white" />
+                                                <input type="number" placeholder="Qty" value={newProduct.quantity} onChange={e => setNewProduct({...newProduct, quantity: Number(e.target.value)})} className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm text-slate-900" />
                                             </div>
                                             <div className="md:col-span-2">
                                                 <Button onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.price} className="w-full h-full text-xs">Add</Button>

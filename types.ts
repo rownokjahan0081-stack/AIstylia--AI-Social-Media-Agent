@@ -68,6 +68,7 @@ export interface UserSettings {
   // Order Automation Settings
   autoConfirmOrders: boolean;
   productCatalog: Product[];
+  replyGuidelines?: string[];
 }
 
 export interface ContentAsset {

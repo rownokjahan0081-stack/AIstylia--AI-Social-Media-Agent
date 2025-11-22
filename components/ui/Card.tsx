@@ -11,7 +11,7 @@ const CardRoot: React.FC<CardProps> = ({ className, children, ...props }) => {
   return (
     <CardContext.Provider value={{}}>
       <div
-        className={`rounded-xl border border-slate-700 bg-slate-800 text-white shadow-lg ${className}`}
+        className={`rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm ${className}`}
         {...props}
       >
         {children}
@@ -26,7 +26,7 @@ const Header: React.FC<CardProps> = ({ className, ...props }) => (
 Header.displayName = 'Card.Header';
 
 const Title: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({ className, ...props }) => (
-  <h3 className={`text-lg font-semibold leading-none tracking-tight text-slate-100 ${className}`} {...props} />
+  <h3 className={`text-lg font-semibold leading-none tracking-tight text-slate-900 ${className}`} {...props} />
 );
 Title.displayName = 'Card.Title';
 

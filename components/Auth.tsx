@@ -32,13 +32,24 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       setErrorAction(null);
       setShowDomainHelp(false);
       
-      // Check for both error code and error message content as some wrappers might obscure the code
-      if (err.code === 'auth/unauthorized-domain' || err.message?.includes('unauthorized-domain') || err.message?.includes('authorized domain')) {
+      const errorCode = err.code;
+      const errorMessage = err.message || '';
+
+      // Helper to detect error codes even if they are buried in the message string
+      const isError = (code: string) => {
+          return errorCode === code || errorMessage.includes(`(${code})`) || errorMessage.includes(code);
+      };
+      
+      if (isError('auth/unauthorized-domain') || errorMessage.includes('unauthorized-domain') || errorMessage.includes('authorized domain')) {
         setError(`Domain Not Authorized`);
         setShowDomainHelp(true);
-      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      } else if (
+          isError('auth/invalid-credential') || 
+          isError('auth/user-not-found') || 
+          isError('auth/wrong-password')
+      ) {
         setError("Incorrect email or password. Please try again.");
-      } else if (err.code === 'auth/email-already-in-use') {
+      } else if (isError('auth/email-already-in-use')) {
         setError("This email address is already registered.");
         setErrorAction({
             label: "Log in instead",
@@ -48,12 +59,20 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 setView('login');
             }
         });
-      } else if (err.code === 'auth/weak-password') {
+      } else if (isError('auth/weak-password')) {
         setError("Password should be at least 6 characters.");
-      } else if (err.code === 'auth/popup-closed-by-user') {
+      } else if (isError('auth/popup-closed-by-user')) {
         setError("Sign-in cancelled.");
+      } else if (isError('auth/invalid-email')) {
+        setError("Please enter a valid email address.");
       } else {
-        setError(err.message || "Authentication failed.");
+        // Clean up raw Firebase error messages for display
+        const cleanMessage = errorMessage
+            .replace('Firebase: ', '')
+            .replace('Error (', '')
+            .replace(').', '');
+            
+        setError(cleanMessage || "Authentication failed.");
       }
       setIsLoading(false);
   };
@@ -134,31 +153,31 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-900 p-4 relative overflow-hidden">
+    <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4 relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-sky-500/10 blur-[100px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-md relative z-10">
-        <Card className="bg-slate-800/80 backdrop-blur-xl border-slate-700 shadow-2xl">
+        <Card className="bg-white/90 backdrop-blur-xl border-slate-200 shadow-2xl">
           <Card.Header className="text-center relative">
             <button 
                 onClick={() => setShowHelpModal(true)}
-                className="absolute right-6 top-6 text-slate-500 hover:text-sky-400 transition-colors"
+                className="absolute right-6 top-6 text-slate-400 hover:text-indigo-600 transition-colors"
                 title="Configuration Help"
             >
                 <HelpCircleIcon className="w-5 h-5" />
             </button>
 
             <div className="flex justify-center items-center mb-6">
-                <div className="w-16 h-16 bg-sky-500/10 rounded-2xl flex items-center justify-center mb-2 ring-1 ring-sky-500/20">
-                    <BotIcon className="w-8 h-8 text-sky-400"/>
+                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-2 ring-1 ring-indigo-100">
+                    <BotIcon className="w-8 h-8 text-indigo-600"/>
                 </div>
             </div>
-            <Card.Title className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            <Card.Title className="text-2xl font-bold text-slate-900">
                 {view === 'login' ? 'Welcome Back' : 'Create Account'}
             </Card.Title>
-            <p className="text-slate-400 text-sm mt-2">
+            <p className="text-slate-500 text-sm mt-2">
                 {view === 'login' ? 'Sign in to access your AI Agent' : 'Get started with your autonomous social manager'}
             </p>
           </Card.Header>
@@ -166,8 +185,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <div className="space-y-5">
                 
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg text-sm animate-fade-in">
-                        <p className="text-red-400 font-bold flex items-center gap-2 mb-1">
+                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-sm animate-fade-in">
+                        <p className="text-red-600 font-bold flex items-center gap-2 mb-1">
                             <AlertTriangleIcon className="w-4 h-4" />
                             {error}
                         </p>
@@ -175,30 +194,30 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         {errorAction && (
                              <button 
                                 onClick={errorAction.action}
-                                className="mt-2 text-xs font-semibold text-white bg-red-500/20 hover:bg-red-500/30 px-3 py-1.5 rounded transition-colors w-full md:w-auto"
+                                className="mt-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded transition-colors w-full md:w-auto"
                              >
                                 {errorAction.label}
                              </button>
                         )}
 
                         {showDomainHelp && (
-                            <div className="mt-3 pt-3 border-t border-red-500/20">
-                                <p className="text-slate-300 text-xs mb-3 leading-relaxed">
+                            <div className="mt-3 pt-3 border-t border-red-200">
+                                <p className="text-slate-600 text-xs mb-3 leading-relaxed">
                                     <strong>Why?</strong> Google Sign-In requires this specific preview domain to be whitelisted in the Firebase project settings. Since this is a dynamic preview URL, it is blocked.
                                 </p>
                                 
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Blocked Domain</label>
-                                    <div className="flex items-center gap-2 bg-slate-900/80 p-2 rounded border border-slate-700">
-                                        <code className="text-xs text-sky-300 flex-1 truncate font-mono px-1">{window.location.hostname}</code>
-                                        <button onClick={copyDomain} className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-700 transition-colors" title="Copy Domain">
-                                            {copied ? <CheckCircleIcon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                                    <div className="flex items-center gap-2 bg-slate-100 p-2 rounded border border-slate-200">
+                                        <code className="text-xs text-indigo-600 flex-1 truncate font-mono px-1">{window.location.hostname}</code>
+                                        <button onClick={copyDomain} className="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-200 transition-colors" title="Copy Domain">
+                                            {copied ? <CheckCircleIcon className="w-4 h-4 text-emerald-500" /> : <CopyIcon className="w-4 h-4" />}
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="mt-4">
-                                    <Button onClick={handleDevBypass} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-none h-9 text-xs font-semibold uppercase tracking-wide shadow-lg">
+                                    <Button onClick={handleDevBypass} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-none h-9 text-xs font-semibold uppercase tracking-wide shadow-md">
                                         Enable Dev Mode (Bypass Auth)
                                     </Button>
                                 </div>
@@ -211,7 +230,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     <Button 
                         onClick={handleGoogleLogin} 
                         disabled={isLoading}
-                        className="w-full bg-white text-slate-900 hover:bg-slate-200 hover:scale-[1.01] transition-all flex items-center justify-center gap-3 font-semibold h-11 shadow-lg shadow-slate-900/20"
+                        className="w-full bg-white !text-black hover:bg-slate-50 border border-slate-300 hover:scale-[1.01] transition-all flex items-center justify-center gap-3 font-semibold h-11 shadow-sm"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -225,7 +244,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     <Button 
                         onClick={handleGuestLogin} 
                         disabled={isLoading}
-                        className="w-full bg-slate-700 text-white hover:bg-slate-600 hover:scale-[1.01] transition-all flex items-center justify-center gap-3 font-semibold h-11 shadow-lg shadow-slate-900/20 border border-slate-600"
+                        className="w-full bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-[1.01] transition-all flex items-center justify-center gap-3 font-semibold h-11 shadow-md"
                     >
                         <UsersIcon className="w-5 h-5" />
                         Continue as Guest (Mock)
@@ -233,9 +252,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="relative flex items-center py-2">
-                    <div className="flex-grow border-t border-slate-600"></div>
-                    <span className="flex-shrink-0 mx-4 text-slate-500 text-xs font-medium uppercase tracking-wider">Or with email</span>
-                    <div className="flex-grow border-t border-slate-600"></div>
+                    <div className="flex-grow border-t border-slate-200"></div>
+                    <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or with email</span>
+                    <div className="flex-grow border-t border-slate-200"></div>
                 </div>
 
                 <form onSubmit={handleAuth} className="space-y-4">
@@ -246,7 +265,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         onChange={(e) => setEmail(e.target.value)} 
                         required 
                         placeholder="you@example.com"
-                        className="bg-slate-900/50 border-slate-600 focus:border-sky-500"
+                        className="bg-slate-50 border-slate-300 focus:border-indigo-500"
                     />
                     <Input 
                         label="Password" 
@@ -256,7 +275,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         required 
                         placeholder="••••••••"
                         minLength={6}
-                        className="bg-slate-900/50 border-slate-600 focus:border-sky-500"
+                        className="bg-slate-50 border-slate-300 focus:border-indigo-500"
                     />
                     
                     <Button type="submit" className="w-full h-11" disabled={isLoading}>
@@ -264,11 +283,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     </Button>
                 </form>
 
-                <div className="text-center text-sm text-slate-400 mt-4">
+                <div className="text-center text-sm text-slate-500 mt-4">
                     {view === 'login' ? (
-                        <p>Don't have an account? <button onClick={() => { setError(null); setView('signup'); }} className="text-sky-400 hover:text-sky-300 font-medium hover:underline">Sign up</button></p>
+                        <p>Don't have an account? <button onClick={() => { setError(null); setView('signup'); }} className="text-indigo-600 hover:text-indigo-500 font-medium hover:underline">Sign up</button></p>
                     ) : (
-                        <p>Already have an account? <button onClick={() => { setError(null); setView('login'); }} className="text-sky-400 hover:text-sky-300 font-medium hover:underline">Log in</button></p>
+                        <p>Already have an account? <button onClick={() => { setError(null); setView('login'); }} className="text-indigo-600 hover:text-indigo-500 font-medium hover:underline">Log in</button></p>
                     )}
                 </div>
             </div>
@@ -277,36 +296,38 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
         {/* Setup Help Modal */}
         {showHelpModal && (
-            <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm rounded-xl p-6 flex flex-col animate-fade-in">
-                <div className="flex justify-between items-start mb-6">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <BotIcon className="w-5 h-5 text-sky-400" />
-                        Auth Configuration
-                    </h3>
-                    <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-white">
-                        <XIcon className="w-6 h-6" />
-                    </button>
-                </div>
-                
-                <div className="space-y-6 overflow-y-auto flex-1 custom-scrollbar">
-                    <div>
-                        <h4 className="text-sm font-semibold text-sky-400 mb-2">1. Domain Authorization (Advanced)</h4>
-                        <p className="text-xs text-slate-400 mb-2">
-                            Google Sign-In fails on preview environments because the domain (e.g. <code>{window.location.hostname}</code>) is not whitelisted in the Firebase project settings. This is a security feature.
-                        </p>
+            <div className="absolute inset-0 z-20 bg-slate-900/50 backdrop-blur-sm rounded-xl flex items-center justify-center p-4 animate-fade-in">
+                <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+                    <div className="flex justify-between items-start mb-6">
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <BotIcon className="w-5 h-5 text-indigo-600" />
+                            Auth Configuration
+                        </h3>
+                        <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-slate-600">
+                            <XIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+                    
+                    <div className="space-y-6 overflow-y-auto flex-1 custom-scrollbar max-h-[300px]">
+                        <div>
+                            <h4 className="text-sm font-semibold text-indigo-600 mb-2">1. Domain Authorization (Advanced)</h4>
+                            <p className="text-xs text-slate-600 mb-2">
+                                Google Sign-In fails on preview environments because the domain (e.g. <code>{window.location.hostname}</code>) is not whitelisted in the Firebase project settings. This is a security feature.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-semibold text-emerald-600 mb-2">2. Email/Password</h4>
+                            <p className="text-xs text-slate-600">
+                                You can create a real account using Email and Password, as this method is less restrictive than Google Sign-In regarding domain names.
+                            </p>
+                        </div>
                     </div>
 
-                    <div>
-                        <h4 className="text-sm font-semibold text-emerald-400 mb-2">2. Email/Password</h4>
-                        <p className="text-xs text-slate-400">
-                            You can create a real account using Email and Password, as this method is less restrictive than Google Sign-In regarding domain names.
-                        </p>
-                    </div>
+                    <Button onClick={() => setShowHelpModal(false)} className="mt-6 w-full bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200">
+                        Close Help
+                    </Button>
                 </div>
-
-                <Button onClick={() => setShowHelpModal(false)} className="mt-4 w-full bg-slate-700 hover:bg-slate-600">
-                    Close Help
-                </Button>
             </div>
         )}
       </div>
