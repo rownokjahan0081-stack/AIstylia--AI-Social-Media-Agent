@@ -48,7 +48,18 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           isError('auth/user-not-found') || 
           isError('auth/wrong-password')
       ) {
-        setError("Incorrect email or password. Please try again.");
+        setError("We couldn't find an account with that email/password.");
+        // If the user is trying to login but fails, suggest signing up
+        if (view === 'login') {
+             setErrorAction({
+                label: "Create a new account",
+                action: () => {
+                    setError(null);
+                    setErrorAction(null);
+                    setView('signup');
+                }
+            });
+        }
       } else if (isError('auth/email-already-in-use')) {
         setError("This email address is already registered.");
         setErrorAction({
