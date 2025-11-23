@@ -3,10 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Connection, Platform, Page } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import { Input } from './ui/Form';
 import { FacebookIcon, InstagramIcon, CheckCircleIcon, LinkIcon, BotIcon, AlertTriangleIcon, RefreshCwIcon, ZapIcon, HelpCircleIcon, ArrowLeftIcon, SettingsIcon, CopyIcon } from './Icons';
-
-// Let TypeScript know that the FB object will be available on the window
-declare const FB: any;
+import { loginToFacebook, getFacebookAccounts, revokePermissions, getStoredAppId, setStoredAppId } from '../services/facebookService';
 
 interface ConnectionsProps {
     connections: Connection[];
@@ -23,6 +22,10 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     const [useSimulation, setUseSimulation] = useState(false);
     const [view, setView] = useState<'list' | 'guide'>('list');
     
+    // Config State
+    const [configAppId, setConfigAppId] = useState('');
+    const [isAppIdSaved, setIsAppIdSaved] = useState(false);
+
     // Copy states
     const [copiedUrl, setCopiedUrl] = useState(false);
     const [copiedToken, setCopiedToken] = useState(false);
@@ -34,6 +37,9 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     const verifyToken = 'social-agent-secret-123';
 
     useEffect(() => {
+        // Load current App ID
+        setConfigAppId(getStoredAppId());
+
         // Facebook Login requires HTTPS. If on HTTP, we flag as Dev/HTTP environment and FORCE simulation.
         if (window.location.protocol !== 'https:') {
             console.warn("App is running on HTTP. Facebook Login requires HTTPS. Enforcing Simulation Mode.");
@@ -52,6 +58,15 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
         localStorage.setItem('social-agent-simulation-mode', String(checked));
     }
 
+    const handleSaveAppId = () => {
+        setStoredAppId(configAppId);
+        setIsAppIdSaved(true);
+        // Force reload to re-init SDK
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
+
     const handleCopyUrl = () => {
         navigator.clipboard.writeText(productionUrl);
         setCopiedUrl(true);
@@ -59,6 +74,14 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     }
 
     const handleConnectClick = () => {
+        const storedId = getStoredAppId();
+        if (!storedId && !useSimulation && !isDevEnvironment) {
+            // If no ID and trying to use real connection, warn user
+            alert("Please configure your Facebook App ID in the Configuration Guide tab first.");
+            setView('guide');
+            return;
+        }
+
         setModalStep('grantPermission');
         setFetchedAccounts([]);
         setSelectedAccounts([]);
@@ -77,50 +100,44 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
         localStorage.setItem('social-agent-connections', JSON.stringify(updatedConnections));
     };
 
-    const fetchUserAccounts = () => {
-        if (typeof FB === 'undefined') {
-            setModalStep('noAccountsFound');
-            return;
-        }
-
-        FB.api(
-            '/me/accounts',
-            'GET',
-            { fields: 'name,id,access_token,instagram_business_account{name,id}' },
-            (response: any) => {
-                if (response && !response.error) {
-                    if (response.data && response.data.length > 0) {
-                        const accounts: {id: string, name: string, type: Platform, accessToken: string}[] = [];
-                        
-                        response.data.forEach((page: any) => {
-                            accounts.push({
-                                id: page.id,
-                                name: page.name,
-                                type: 'Facebook',
-                                accessToken: page.access_token,
-                            });
-
-                            if (page.instagram_business_account) {
-                                accounts.push({
-                                    id: page.instagram_business_account.id,
-                                    name: `${page.instagram_business_account.name} (Instagram)`,
-                                    type: 'Instagram',
-                                    accessToken: page.access_token, // Instagram API uses the Page's access token
-                                });
-                            }
+    const fetchUserAccounts = async () => {
+        try {
+            const response = await getFacebookAccounts();
+            if (response && !response.error) {
+                if (response.data && response.data.length > 0) {
+                    const accounts: {id: string, name: string, type: Platform, accessToken: string}[] = [];
+                    
+                    response.data.forEach((page: any) => {
+                        accounts.push({
+                            id: page.id,
+                            name: page.name,
+                            type: 'Facebook',
+                            accessToken: page.access_token,
                         });
 
-                        setFetchedAccounts(accounts);
-                        setModalStep('selectAccounts');
-                    } else {
-                        setModalStep('noAccountsFound');
-                    }
+                        if (page.instagram_business_account) {
+                            accounts.push({
+                                id: page.instagram_business_account.id,
+                                name: `${page.instagram_business_account.name} (Instagram)`,
+                                type: 'Instagram',
+                                accessToken: page.access_token, // Instagram API uses the Page's access token
+                            });
+                        }
+                    });
+
+                    setFetchedAccounts(accounts);
+                    setModalStep('selectAccounts');
                 } else {
-                    console.error('Error fetching accounts:', response.error);
-                    setModalStep('noAccountsFound'); 
+                    setModalStep('noAccountsFound');
                 }
+            } else {
+                console.error('Error fetching accounts:', response.error);
+                setModalStep('noAccountsFound'); 
             }
-        );
+        } catch (error) {
+            console.error('API Error:', error);
+            setModalStep('noAccountsFound');
+        }
     };
 
     const runSimulation = () => {
@@ -134,7 +151,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
          }, 1000);
     };
 
-    const handleGrantPermission = (rerequest = false) => {
+    const handleGrantPermission = async (rerequest = false) => {
         setModalStep('connecting');
 
         // CRITICAL: FB.login fails on HTTP. Guard against this by forcing simulation.
@@ -147,55 +164,41 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
              return;
         }
 
-        if (typeof FB === 'undefined') {
-             console.error("Facebook SDK not loaded");
-             setTimeout(() => {
+        try {
+            const response = await loginToFacebook(rerequest);
+            if (response.authResponse) {
+                fetchUserAccounts();
+            } else {
+                console.log('User cancelled login or did not fully authorize.', response);
                 setModalStep('noAccountsFound');
-             }, 1000);
-             return;
+            }
+        } catch (error: any) {
+            console.error("Login Failed:", error);
+            if (error.message === "App ID not configured") {
+                alert("App ID is missing. Please configure it in the guide.");
+                closeModal();
+                setView('guide');
+            } else {
+                setModalStep('noAccountsFound');
+            }
         }
-
-        const params: any = {
-            scope: 'public_profile,email,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'
-        };
-
-        if (rerequest) {
-            params.auth_type = 'rerequest';
-        }
-
-        FB.login(
-            (response: any) => {
-                if (response.authResponse) {
-                    fetchUserAccounts();
-                } else {
-                    console.log('User cancelled login or did not fully authorize.', response);
-                    setModalStep('noAccountsFound');
-                }
-            },
-            params
-        );
     };
 
-    const handleResetAndReconnect = () => {
+    const handleResetAndReconnect = async () => {
         setModalStep('connecting');
         
-        // CRITICAL: FB.getAccessToken also fails on HTTP.
         if (useSimulation || isDevEnvironment || window.location.protocol !== 'https:') {
             runSimulation();
             return;
         }
         
-        const performLogin = () => handleGrantPermission(true);
-
-        if (typeof FB !== 'undefined' && FB.getAccessToken()) {
-            // Try to revoke, but if it fails (token invalid), proceed to login anyway
-            FB.api('/me/permissions', 'DELETE', (response: any) => {
-                console.log('Permissions revoked response:', response);
-                performLogin();
-            });
-        } else {
-            performLogin();
+        // Try to revoke permissions then re-login
+        try {
+            await revokePermissions();
+        } catch (e) {
+            console.warn("Revoke failed, proceeding to login", e);
         }
+        handleGrantPermission(true);
     };
 
     const handleAccountSelection = (accountId: string) => {
@@ -242,7 +245,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                             <FacebookIcon className="w-12 h-12 text-blue-600"/>
                         </div>
                         <Card.Title className="text-xl">AI Agent wants to connect to Facebook</Card.Title>
-                        <p className="text-xs text-slate-500 mt-1">App ID: 1398822078509610</p>
+                        <p className="text-xs text-slate-500 mt-1">App ID: {getStoredAppId() || 'Not Configured'}</p>
                         
                         {isDevEnvironment && (
                              <div className="bg-amber-50 border border-amber-200 p-3 rounded-md my-4 text-left">
@@ -327,8 +330,6 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         <AlertTriangleIcon className="w-12 h-12 text-amber-500 mx-auto mb-4" />
                         <Card.Title className="text-xl">Connection Issue Detected</Card.Title>
                         
-                        {/* Removed 'Why is this happening?' text and setup guide as requested */}
-                        
                         <div className="flex flex-col gap-3 mt-4">
                              <Button onClick={() => { toggleSimulation(true); runSimulation(); }} className="bg-violet-600 hover:bg-violet-700">
                                 <ZapIcon className="w-4 h-4 mr-2" />
@@ -360,12 +361,21 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
             {view === 'list' ? (
                 <Card>
                     <Card.Header>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center">
-                                <FacebookIcon className="w-8 h-8 text-blue-600 -mr-2 z-10" />
-                                <InstagramIcon className="w-8 h-8 text-pink-600" />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center">
+                                    <FacebookIcon className="w-8 h-8 text-blue-600 -mr-2 z-10" />
+                                    <InstagramIcon className="w-8 h-8 text-pink-600" />
+                                </div>
+                                <Card.Title className="text-2xl">Meta</Card.Title>
                             </div>
-                            <Card.Title className="text-2xl">Meta</Card.Title>
+                            <button 
+                                onClick={() => setView('guide')}
+                                className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center gap-1"
+                            >
+                                <SettingsIcon className="w-4 h-4" />
+                                Configuration Guide
+                            </button>
                         </div>
                     </Card.Header>
                     <Card.Content className="flex-1 flex flex-col">
@@ -436,10 +446,34 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         </Card.Header>
                         <Card.Content className="space-y-8">
                             
+                            {/* Section 0: App ID Input */}
+                            <section className="border-b border-slate-200 pb-6">
+                                <h3 className="text-slate-900 font-semibold flex items-center gap-2 mb-2">
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">1</span>
+                                    Facebook App ID
+                                </h3>
+                                <p className="text-sm text-slate-500 mb-3">
+                                    Enter the App ID from your Facebook Developers dashboard. This allows the login button to work on your specific domain.
+                                </p>
+                                <div className="flex gap-2 items-end">
+                                    <div className="flex-1">
+                                        <Input 
+                                            label="App ID" 
+                                            value={configAppId} 
+                                            onChange={e => setConfigAppId(e.target.value)} 
+                                            placeholder="e.g. 1398822078509610" 
+                                        />
+                                    </div>
+                                    <Button onClick={handleSaveAppId} className={isAppIdSaved ? "bg-emerald-600 hover:bg-emerald-700" : ""}>
+                                        {isAppIdSaved ? "Saved & Reloading..." : "Save & Reload"}
+                                    </Button>
+                                </div>
+                            </section>
+
                             {/* Section 1: Webhooks */}
                             <section className="border-b border-slate-200 pb-6">
                                 <h3 className="text-slate-900 font-semibold flex items-center gap-2 mb-2">
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 text-xs font-bold">1</span>
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 text-xs font-bold">2</span>
                                     Webhooks & Verify Token
                                 </h3>
                                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
@@ -490,7 +524,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                             {/* Section 2: Facebook Login */}
                             <section className="border-b border-slate-200 pb-6">
                                 <h3 className="text-slate-900 font-semibold flex items-center gap-2 mb-2">
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">2</span>
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">3</span>
                                     Facebook Login Settings
                                 </h3>
                                 <p className="text-sm text-slate-500 mb-3">
@@ -509,7 +543,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                             {/* Section 3: Testers */}
                             <section>
                                 <h3 className="text-slate-900 font-semibold flex items-center gap-2 mb-2">
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">3</span>
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">4</span>
                                     Development Mode & Testers
                                 </h3>
                                 <p className="text-sm text-slate-500 mb-4">

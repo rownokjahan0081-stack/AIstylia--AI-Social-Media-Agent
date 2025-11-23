@@ -13,6 +13,7 @@ import { SupportChat } from './components/SupportChat';
 import { DashboardIcon, InboxIcon, Edit3Icon, BarChartIcon, BotIcon, SettingsIcon, LibraryIcon, LogOutIcon, LinkIcon, TrendingUpIcon, MenuIcon, XIcon } from './components/Icons';
 import { UserSettings, Connection, Page } from './types';
 import { subscribeToAuthChanges, logoutUser } from './services/authService';
+import { initFacebookSdk } from './services/facebookService';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<any | null>(null);
@@ -24,6 +25,9 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   useEffect(() => {
+    // Initialize Facebook SDK
+    initFacebookSdk();
+
     // Initialize Local Data if available
     const userSettings = localStorage.getItem('social-agent-settings');
     const userConnections = localStorage.getItem('social-agent-connections');
