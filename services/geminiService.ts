@@ -2,7 +2,32 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Post, UserSettings, Connection, Platform, ContentAsset, TrendTopic, TrendContentIdea } from '../types';
 
 // Safe check for environment variable with fallback for development
-const API_KEY = process.env.API_KEY || "AIzaSyBTPhYMDd3drH535s4keuQXtTH6zEVcbZo";
+const getApiKey = () => {
+    // 1. Check process.env (Standard Node/Webpack/Preview)
+    try {
+        if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+            return process.env.API_KEY;
+        }
+    } catch (e) {
+        // Ignore ReferenceError if process is not defined
+    }
+    
+    // 2. Check import.meta.env (Vite Production)
+    try {
+        // @ts-ignore
+        if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+            // @ts-ignore
+            return import.meta.env.VITE_API_KEY;
+        }
+    } catch (e) {
+        // Ignore
+    }
+    
+    // 3. Fallback Key (Note: May have domain restrictions)
+    return "AIzaSyBTPhYMDd3drH535s4keuQXtTH6zEVcbZo";
+};
+
+const API_KEY = getApiKey();
 
 const getAIClient = () => new GoogleGenAI({ apiKey: API_KEY });
 

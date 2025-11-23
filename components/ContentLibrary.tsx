@@ -100,11 +100,11 @@ export const ContentLibrary: React.FC = () => {
             if (result) {
                 setGeneratedImage(result);
             } else {
-                alert("Could not generate image. The model might be busy or the prompt might be flagged. Please try again.");
+                alert("Could not generate image. The model might be busy, or your API key is restricted. Please check your console logs.");
             }
         } catch (e) {
             console.error(e);
-            alert("Image generation failed. Please check the console for details.");
+            alert("Image generation failed. If you are on a live site, ensure your API Key is configured in your hosting environment variables.");
         } finally {
             setIsGenerating(false);
         }
