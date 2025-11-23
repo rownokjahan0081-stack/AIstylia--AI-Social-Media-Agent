@@ -2,15 +2,18 @@
 // Helper to access global FB object safely
 const getFB = () => (window as any).FB;
 
-export const getStoredAppId = () => {
-  return localStorage.getItem('social-agent-fb-app-id') || 
-         // @ts-ignore
-         (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_FB_APP_ID : '') || 
-         '';
-};
+// Updated with your provided App ID
+const HARDCODED_APP_ID = '1398822078509610'; 
 
-export const setStoredAppId = (appId: string) => {
-  localStorage.setItem('social-agent-fb-app-id', appId);
+const getAppId = () => {
+    // 1. Check Vite Environment Variable (Optional override)
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FB_APP_ID) {
+        // @ts-ignore
+        return import.meta.env.VITE_FB_APP_ID;
+    }
+    // 2. Use the hardcoded ID provided
+    return HARDCODED_APP_ID;
 };
 
 export const initFacebookSdk = (): Promise<void> => {
@@ -20,7 +23,7 @@ export const initFacebookSdk = (): Promise<void> => {
         return;
     }
 
-    const appId = getStoredAppId();
+    const appId = getAppId();
     
     // @ts-ignore
     window.fbAsyncInit = function() {
@@ -32,9 +35,9 @@ export const initFacebookSdk = (): Promise<void> => {
           xfbml: true,
           version: 'v19.0'
         });
-        console.log('Facebook SDK initialized with App ID:', appId);
+        console.log('Facebook SDK initialized');
       } else {
-          console.warn('Facebook SDK loaded but no App ID found. Please configure it in Connections.');
+        console.log('Facebook SDK loaded (Waiting for App ID configuration)');
       }
       resolve();
     };
@@ -53,10 +56,10 @@ export const initFacebookSdk = (): Promise<void> => {
 export const loginToFacebook = (rerequest: boolean = false): Promise<any> => {
     return new Promise((resolve, reject) => {
         const FB = getFB();
+        const appId = getAppId();
+
         if (!FB) return reject(new Error("Facebook SDK not loaded"));
-        
-        // If SDK is loaded but not init (no App ID), throw specific error
-        if (!getStoredAppId()) return reject(new Error("App ID not configured"));
+        if (!appId) return reject(new Error("App ID not configured"));
 
         const params: any = {
             scope: 'public_profile,email,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'

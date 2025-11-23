@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ContentAsset, UserSettings } from '../types';
 import { Card } from './ui/Card';
@@ -100,11 +101,17 @@ export const ContentLibrary: React.FC = () => {
             if (result) {
                 setGeneratedImage(result);
             } else {
-                alert("Could not generate image. The model might be busy, or your API key is restricted. Please check your console logs.");
+                throw new Error("No image returned");
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Image generation failed. If you are on a live site, ensure your API Key is configured in your hosting environment variables.");
+            let errorMessage = "Image generation failed.";
+            
+            if (e.message && (e.message.includes('403') || e.message.includes('400') || e.message.includes('fetch'))) {
+                errorMessage = "API Error: The default API Key is domain-restricted. \n\nPlease generate a new API Key at aistudio.google.com and set it as 'VITE_API_KEY' in your hosting provider's environment variables.";
+            }
+            
+            alert(errorMessage);
         } finally {
             setIsGenerating(false);
         }
