@@ -1,14 +1,16 @@
 import React from 'react';
 import { Card } from './ui/Card';
 import { InboxIcon, Edit3Icon, BarChartIcon, ZapIcon } from './Icons';
-import { UserSettings, Page } from '../types';
+import { UserSettings, Page, Connection } from '../types';
 
 interface DashboardProps {
   setActivePage: (page: Page) => void;
   settings: UserSettings;
+  user: any;
+  connections: Connection[];
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, user, connections }) => {
 
   const quickActions = [
     {
@@ -33,6 +35,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings })
       color: 'amber'
     },
   ];
+
+  const isGuest = user?.uid === 'guest-user';
+  const isConnected = connections.length > 0;
+  
+  // Logic for Engagement Rate Display
+  let engagementRate = "N/A";
+  let engagementSubtext = "Connect accounts to view";
+  let engagementColor = "text-slate-300"; // Default gray for N/A
+
+  if (isConnected) {
+      // If connected (mock or real), we show data
+      if (isGuest) {
+          engagementRate = "4.7%";
+          engagementSubtext = "Mock Data (Guest)";
+          engagementColor = "text-emerald-500";
+      } else {
+          // Simulation for real connected user (without backend)
+          engagementRate = "3.2%";
+          engagementSubtext = "Based on recent activity";
+          engagementColor = "text-emerald-500";
+      }
+  }
 
   return (
     <div className="animate-fade-in">
@@ -65,8 +89,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings })
             <Card.Title>Engagement Rate</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-4xl md:text-5xl font-bold text-emerald-500">4.7%</p>
-            <p className="text-sm text-slate-500">Up 0.5% from last week</p>
+            <p className={`text-4xl md:text-5xl font-bold ${engagementColor}`}>{engagementRate}</p>
+            <p className="text-sm text-slate-500">{engagementSubtext}</p>
           </Card.Content>
         </Card>
       </div>

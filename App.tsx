@@ -134,13 +134,13 @@ const App: React.FC = () => {
     
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard setActivePage={handlePageChange} settings={settings} />;
+        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} />;
       case 'inbox':
         return <Inbox settings={settings} setSettings={setSettings} connections={connections} setActivePage={handlePageChange} />;
       case 'content':
         return <ContentPlanner settings={settings} connections={connections} />;
       case 'analytics':
-        return <Analytics settings={settings} />;
+        return <Analytics settings={settings} user={user} connections={connections} />;
       case 'library':
         return <ContentLibrary />;
       case 'trends':
@@ -150,7 +150,7 @@ const App: React.FC = () => {
       case 'connections':
         return <Connections connections={connections} setConnections={setConnections} setActivePage={handlePageChange} />;
       default:
-        return <Dashboard setActivePage={handlePageChange} settings={settings} />;
+        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} />;
     }
   };
 

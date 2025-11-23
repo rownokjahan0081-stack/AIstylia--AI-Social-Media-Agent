@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Post, UserSettings } from '../types';
+import { Post, UserSettings, Connection } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { analyzeOwnPosts } from '../services/geminiService';
-import { SparklesIcon } from './Icons';
+import { SparklesIcon, LinkIcon } from './Icons';
 
 // In a real app, this data would come from props or a state management solution.
 // For this simulation, we'll keep it in local state to be "generated".
@@ -22,12 +22,24 @@ const generateMockData = (): Post[] => {
 
 interface AnalyticsProps {
     settings: UserSettings;
+    user: any;
+    connections: Connection[];
 }
 
-export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
+export const Analytics: React.FC<AnalyticsProps> = ({ settings, user, connections }) => {
   const [postData, setPostData] = useState<Post[]>([]);
   const [analysis, setAnalysis] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  const isConnected = connections.length > 0;
+  const isGuest = user?.uid === 'guest-user';
+
+  useEffect(() => {
+      if (isConnected && postData.length === 0) {
+          // Automatically load data if connected
+          setPostData(generateMockData());
+      }
+  }, [isConnected, postData.length]);
   
   const chartData = useMemo(() => {
     return postData.map((post, index) => ({
@@ -62,11 +74,32 @@ export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
     }
   };
 
+  if (!isConnected) {
+      return (
+        <div className="animate-fade-in flex flex-col items-center justify-center h-full text-center py-20">
+             <div className="bg-indigo-50 p-6 rounded-full mb-6">
+                 <LinkIcon className="w-12 h-12 text-indigo-600" />
+             </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Connect Your Accounts</h2>
+            <p className="text-slate-600 max-w-md mb-8">
+                Connect your social media profiles to view engagement metrics, track performance, and get AI-powered insights.
+            </p>
+        </div>
+      );
+  }
+
   return (
     <div className="animate-fade-in">
-      <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Performance Analytics</h1>
-        <p className="text-slate-600 mt-2 text-sm md:text-base">Track your engagement and understand what's working.</p>
+      <header className="mb-8 flex justify-between items-end">
+        <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Performance Analytics</h1>
+            <p className="text-slate-600 mt-2 text-sm md:text-base">Track your engagement and understand what's working.</p>
+        </div>
+        {isGuest && (
+            <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">
+                Viewing Mock Data
+            </span>
+        )}
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -114,8 +147,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
                 </ResponsiveContainer>
             ) : (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                    <p className="mb-4 text-center">No performance data yet. Post some content to see your analytics.</p>
-                    <Button onClick={() => setPostData(generateMockData())}>Generate Sample Data</Button>
+                    <p className="mb-4 text-center">No performance data found.</p>
                 </div>
             )}
         </Card.Content>
@@ -143,7 +175,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ settings }) => {
                 )}
               </>
             ) : (
-              <p className="text-slate-500 text-sm">Generate sample data or post some content to enable analysis.</p>
+              <p className="text-slate-500 text-sm">Post some content to enable analysis.</p>
             )}
           </Card.Content>
         </Card>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { InboxItem, InboxItemType, UserSettings, Connection, Platform, Page, Product } from '../types';
 import { Card } from './ui/Card';
@@ -337,7 +338,7 @@ export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections
         <Card className="h-full flex flex-col">
           <Card.Header className="flex-shrink-0 flex justify-between items-center border-b border-slate-100">
             <Card.Title className="flex items-center gap-2">
-                Interactions
+                Order Automation Settings
             </Card.Title>
             <button 
                 onClick={() => {
@@ -583,7 +584,7 @@ export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections
                                           <Input label="Price ($)" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} />
                                           <Input label="Stock Qty" type="number" value={newProduct.quantity} onChange={e => setNewProduct({...newProduct, quantity: Number(e.target.value)})} />
                                       </div>
-                                      <Button onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.price} className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 h-9">Add to Catalog</Button>
+                                      <Button onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.price} className="w-full bg-white !text-black border border-slate-300 hover:bg-slate-50 h-9" style={{ color: 'black' }}>Add to Catalog</Button>
                                   </div>
                               </div>
                           </div>

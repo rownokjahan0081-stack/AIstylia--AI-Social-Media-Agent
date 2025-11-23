@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserSettings } from '../types';
+import { UserSettings, Product } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { SparklesIcon } from './Icons';
@@ -35,6 +35,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, initialSetti
     productCatalog: [],
     replyGuidelines: []
   });
+
+  const [newProduct, setNewProduct] = useState<Partial<Product>>({ name: '', price: 0, quantity: 100 });
 
   // Populate with mock data if provided
   useEffect(() => {
@@ -71,6 +73,25 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, initialSetti
         }));
     }
     setIsLoading(false);
+  }
+
+  const handleAddProduct = () => {
+      if(newProduct.name && newProduct.price) {
+          const product: Product = {
+              id: Date.now().toString(),
+              name: newProduct.name || '',
+              price: Number(newProduct.price),
+              quantity: Number(newProduct.quantity)
+          };
+          const updatedCatalog = [...(settings.productCatalog || []), product];
+          handleInputChange('productCatalog', updatedCatalog);
+          setNewProduct({ name: '', price: 0, quantity: 100 });
+      }
+  }
+
+  const handleRemoveProduct = (id: string) => {
+      const updatedCatalog = (settings.productCatalog || []).filter(p => p.id !== id);
+      handleInputChange('productCatalog', updatedCatalog);
   }
 
   const nextStep = () => setStep(s => Math.min(s + 1, steps.length - 1));
@@ -122,6 +143,54 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, initialSetti
             <div className="space-y-4">
                 <Checkbox label="Enable Auto-Reply" description="Allow the AI to reply to messages and comments without approval." checked={settings.autoReply} onChange={e => handleInputChange('autoReply', e.target.checked)} />
                 <Checkbox label="Enable Auto-Post" description="Allow the AI to publish new posts to your schedule without approval." checked={settings.autoPost} onChange={e => handleInputChange('autoPost', e.target.checked)} />
+                
+                <div className="border-t border-slate-200 pt-4 mt-2">
+                     <Checkbox 
+                        label="Enable Auto-Confirm Orders" 
+                        description="Allow AI to calculate totals and confirm orders based on your catalog." 
+                        checked={settings.autoConfirmOrders || false} 
+                        onChange={e => handleInputChange('autoConfirmOrders', e.target.checked)} 
+                     />
+                     
+                     {(settings.autoConfirmOrders) && (
+                        <div className="mt-4 pl-4 border-l-2 border-slate-200">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-3">Product Catalog</h3>
+                            
+                            <div className="space-y-3 mb-4">
+                                {settings.productCatalog && settings.productCatalog.map(p => (
+                                    <div key={p.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-md border border-slate-200">
+                                        <div>
+                                            <p className="font-medium text-slate-900">{p.name}</p>
+                                            <p className="text-xs text-slate-500">${p.price} • Qty: {p.quantity}</p>
+                                        </div>
+                                        <button onClick={() => handleRemoveProduct(p.id)} className="text-red-500 hover:text-red-600 text-xs font-medium">Remove</button>
+                                    </div>
+                                ))}
+                                {(!settings.productCatalog || settings.productCatalog.length === 0) && (
+                                    <p className="text-slate-500 text-sm italic">No products added yet.</p>
+                                )}
+                            </div>
+
+                            <div className="bg-slate-100/50 p-4 rounded-md">
+                                <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wide">Add New Product</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                    <div className="md:col-span-5">
+                                        <input type="text" placeholder="Product Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm text-slate-900" />
+                                    </div>
+                                    <div className="md:col-span-3">
+                                        <input type="number" placeholder="Price" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm text-slate-900" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <input type="number" placeholder="Qty" value={newProduct.quantity} onChange={e => setNewProduct({...newProduct, quantity: Number(e.target.value)})} className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm text-slate-900" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <Button onClick={handleAddProduct} disabled={!newProduct.name || !newProduct.price} className="w-full h-full text-xs">Add</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                     )}
+                </div>
             </div>
           </>
         );
