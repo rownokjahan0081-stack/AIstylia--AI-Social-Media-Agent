@@ -7,7 +7,7 @@ export enum InboxItemType {
   Review = 'Review',
 }
 
-export type Platform = 'Facebook' | 'Instagram';
+export type Platform = 'Facebook' | 'Instagram' | 'WhatsApp';
 
 export interface Connection {
   platform: Platform;

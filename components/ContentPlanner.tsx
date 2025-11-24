@@ -5,7 +5,7 @@ import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Form';
 import { Post, UserSettings, Connection, Platform, ContentAsset } from '../types';
 import { generateWeeklyContentPlan, improvePost, regenerateSinglePost } from '../services/geminiService';
-import { SparklesIcon, CheckCircleIcon, ClockIcon, AlertTriangleIcon, CameraIcon, FacebookIcon, InstagramIcon, TrashIcon, RefreshCwIcon } from './Icons';
+import { SparklesIcon, CheckCircleIcon, ClockIcon, AlertTriangleIcon, CameraIcon, FacebookIcon, InstagramIcon, WhatsAppIcon, TrashIcon, RefreshCwIcon } from './Icons';
 
 const PostStatusIndicator = ({ status }: { status: Post['status']}) => {
     switch (status) {
@@ -22,6 +22,8 @@ const PlatformIcon = ({ platform }: { platform: Platform }) => {
   switch (platform) {
     case 'Facebook': return <FacebookIcon className="w-4 h-4 text-blue-600" />;
     case 'Instagram': return <InstagramIcon className="w-4 h-4 text-pink-600" />;
+    case 'WhatsApp': return <WhatsAppIcon className="w-4 h-4 text-emerald-500" />;
+    default: return null;
   }
 };
 

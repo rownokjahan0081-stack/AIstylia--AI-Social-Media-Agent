@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Connection, Platform, Page } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { FacebookIcon, InstagramIcon, CheckCircleIcon, LinkIcon, BotIcon, AlertTriangleIcon, RefreshCwIcon, ZapIcon } from './Icons';
+import { FacebookIcon, InstagramIcon, WhatsAppIcon, CheckCircleIcon, LinkIcon, BotIcon, AlertTriangleIcon, RefreshCwIcon, ZapIcon } from './Icons';
 import { loginToFacebook, getFacebookAccounts, revokePermissions } from '../services/facebookService';
 
 interface ConnectionsProps {
@@ -14,11 +14,16 @@ interface ConnectionsProps {
 
 export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnections, setActivePage }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
     const [modalStep, setModalStep] = useState<'grantPermission' | 'connecting' | 'selectAccounts' | 'noAccountsFound'>('grantPermission');
     const [fetchedAccounts, setFetchedAccounts] = useState<{id: string, name: string, type: Platform, accessToken: string}[]>([]);
     const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
     const [isDevEnvironment, setIsDevEnvironment] = useState(false);
     const [useSimulation, setUseSimulation] = useState(false);
+    
+    // WhatsApp specific state
+    const [whatsAppNumber, setWhatsAppNumber] = useState('');
+    const [isConnectingWhatsApp, setIsConnectingWhatsApp] = useState(false);
 
     useEffect(() => {
         // Facebook Login requires HTTPS. If on HTTP, we flag as Dev/HTTP environment.
@@ -185,7 +190,37 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
         setActivePage('dashboard');
     };
     
+    const handleConnectWhatsApp = () => {
+        setIsWhatsAppModalOpen(true);
+        setWhatsAppNumber('');
+    };
+
+    const confirmWhatsAppConnection = () => {
+        if (!whatsAppNumber) return;
+        setIsConnectingWhatsApp(true);
+        
+        // Simulation of WhatsApp verification process
+        setTimeout(() => {
+            const newConnection: Connection = {
+                platform: 'WhatsApp',
+                id: `wa-${Date.now()}`,
+                name: `WhatsApp Business (${whatsAppNumber})`,
+                status: 'connected',
+                accessToken: 'mock-wa-token'
+            };
+            
+            const updatedConnections = [...connections, newConnection];
+            setConnections(updatedConnections);
+            localStorage.setItem('social-agent-connections', JSON.stringify(updatedConnections));
+            
+            setIsConnectingWhatsApp(false);
+            setIsWhatsAppModalOpen(false);
+            setActivePage('dashboard');
+        }, 1500);
+    };
+    
     const metaConnections = connections.filter(c => c.platform === 'Facebook' || c.platform === 'Instagram');
+    const waConnections = connections.filter(c => c.platform === 'WhatsApp');
 
     const renderModalContent = () => {
         switch(modalStep) {
@@ -303,88 +338,177 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
     }
 
     return (
-        <div className="animate-fade-in">
-            <header className="mb-8 flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="animate-fade-in space-y-8">
+            <header className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
                     <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Connections</h1>
                     <p className="text-slate-600 mt-2">Integrate your social media accounts to activate the AI agent.</p>
                 </div>
             </header>
             
-            <Card>
-                <Card.Header>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center">
-                                <FacebookIcon className="w-8 h-8 text-blue-600 -mr-2 z-10" />
-                                <InstagramIcon className="w-8 h-8 text-pink-600" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Meta Card */}
+                <Card>
+                    <Card.Header>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center">
+                                    <FacebookIcon className="w-8 h-8 text-blue-600 -mr-2 z-10" />
+                                    <InstagramIcon className="w-8 h-8 text-pink-600" />
+                                </div>
+                                <Card.Title className="text-2xl">Meta</Card.Title>
                             </div>
-                            <Card.Title className="text-2xl">Meta</Card.Title>
                         </div>
-                    </div>
-                </Card.Header>
-                <Card.Content className="flex-1 flex flex-col">
-                    <p className="text-slate-500">Connect your Facebook Pages and Instagram Profiles to manage comments, messages, and posts.</p>
-                    
-                    {(useSimulation || isDevEnvironment) && (
-                            <div className="mt-4 bg-violet-50 border border-violet-200 p-3 rounded-md flex items-start gap-3">
-                            <ZapIcon className="w-5 h-5 text-violet-600 mt-0.5" />
-                            <div>
-                                <p className="text-violet-700 text-sm font-semibold">Demo Mode Active</p>
-                                <p className="text-violet-600/70 text-xs">
-                                    {isDevEnvironment 
-                                        ? "Enforced because Facebook Login requires HTTPS."
-                                        : "You are using simulated connections. Real Facebook data will not be loaded."
-                                    }
-                                </p>
-                            </div>
-                            </div>
-                    )}
-
-                    <div className="mt-6 flex-1 flex flex-col justify-end">
-                    {metaConnections.length > 0 && (
-                            <div className="space-y-2 mb-4">
-                                {metaConnections.map(connection => (
-                                    <div key={connection.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            {connection.platform === 'Facebook' ? <FacebookIcon className="w-5 h-5 text-blue-600" /> : <InstagramIcon className="w-5 h-5 text-pink-600" />}
-                                            <div>
-                                                <p className="text-sm text-slate-900 font-medium">{connection.name}</p>
-                                                <p className="flex items-center text-emerald-600 text-xs"><CheckCircleIcon className="w-3 h-3 mr-1.5"/> Connected</p>
-                                            </div>
-                                        </div>
-                                        <Button onClick={() => handleDisconnect(connection.id)} className="bg-white border border-red-200 text-red-600 hover:bg-red-50 h-8 px-3 text-xs">Disconnect</Button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                    </Card.Header>
+                    <Card.Content className="flex-1 flex flex-col">
+                        <p className="text-slate-500 mb-6">Connect your Facebook Pages and Instagram Profiles to manage comments, messages, and posts.</p>
                         
-                        <div className="text-center">
-                            <Button onClick={handleConnectClick} className="w-full">
-                                {metaConnections.length > 0 ? 'Connect Another Meta Account' : <><LinkIcon className="w-4 h-4 mr-2" /> Connect with Meta</>}
-                            </Button>
-                            {!isDevEnvironment && (
-                                <div className="mt-4 flex justify-center items-center gap-2">
-                                     <label className="flex items-center cursor-pointer text-xs text-slate-500 hover:text-slate-700 transition-colors p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={useSimulation} 
-                                            onChange={e => toggleSimulation(e.target.checked)} 
-                                            className="h-3 w-3 rounded bg-white border-slate-300 text-indigo-600 focus:ring-0 mr-2"
-                                        />
-                                        Force Demo Mode
-                                    </label>
+                        {(useSimulation || isDevEnvironment) && (
+                                <div className="mb-6 bg-violet-50 border border-violet-200 p-3 rounded-md flex items-start gap-3">
+                                <ZapIcon className="w-5 h-5 text-violet-600 mt-0.5" />
+                                <div>
+                                    <p className="text-violet-700 text-sm font-semibold">Demo Mode Active</p>
+                                    <p className="text-violet-600/70 text-xs">
+                                        {isDevEnvironment 
+                                            ? "Enforced because Facebook Login requires HTTPS."
+                                            : "You are using simulated connections. Real Facebook data will not be loaded."
+                                        }
+                                    </p>
+                                </div>
+                                </div>
+                        )}
+
+                        <div className="flex-1 flex flex-col justify-end">
+                        {metaConnections.length > 0 && (
+                                <div className="space-y-2 mb-4">
+                                    {metaConnections.map(connection => (
+                                        <div key={connection.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                {connection.platform === 'Facebook' ? <FacebookIcon className="w-5 h-5 text-blue-600" /> : <InstagramIcon className="w-5 h-5 text-pink-600" />}
+                                                <div>
+                                                    <p className="text-sm text-slate-900 font-medium">{connection.name}</p>
+                                                    <p className="flex items-center text-emerald-600 text-xs"><CheckCircleIcon className="w-3 h-3 mr-1.5"/> Connected</p>
+                                                </div>
+                                            </div>
+                                            <Button onClick={() => handleDisconnect(connection.id)} className="bg-white border border-red-200 text-red-600 hover:bg-red-50 h-8 px-3 text-xs">Disconnect</Button>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
+                            
+                            <div className="text-center">
+                                <Button onClick={handleConnectClick} className="w-full">
+                                    {metaConnections.length > 0 ? 'Connect Another Meta Account' : <><LinkIcon className="w-4 h-4 mr-2" /> Connect with Meta</>}
+                                </Button>
+                                {!isDevEnvironment && (
+                                    <div className="mt-4 flex justify-center items-center gap-2">
+                                        <label className="flex items-center cursor-pointer text-xs text-slate-500 hover:text-slate-700 transition-colors p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={useSimulation} 
+                                                onChange={e => toggleSimulation(e.target.checked)} 
+                                                className="h-3 w-3 rounded bg-white border-slate-300 text-indigo-600 focus:ring-0 mr-2"
+                                            />
+                                            Force Demo Mode
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </Card.Content>
-            </Card>
+                    </Card.Content>
+                </Card>
 
+                {/* WhatsApp Card */}
+                <Card>
+                    <Card.Header>
+                        <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-4">
+                                <WhatsAppIcon className="w-8 h-8 text-emerald-500" />
+                                <Card.Title className="text-2xl">WhatsApp</Card.Title>
+                            </div>
+                        </div>
+                    </Card.Header>
+                    <Card.Content className="flex-1 flex flex-col">
+                        <p className="text-slate-500 mb-6">Connect your WhatsApp Business number to reply to customer chats automatically from the inbox.</p>
+                        
+                        <div className="flex-1 flex flex-col justify-end">
+                             {waConnections.length > 0 && (
+                                <div className="space-y-2 mb-4">
+                                    {waConnections.map(connection => (
+                                        <div key={connection.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <WhatsAppIcon className="w-5 h-5 text-emerald-500" />
+                                                <div>
+                                                    <p className="text-sm text-slate-900 font-medium">{connection.name}</p>
+                                                    <p className="flex items-center text-emerald-600 text-xs"><CheckCircleIcon className="w-3 h-3 mr-1.5"/> Connected</p>
+                                                </div>
+                                            </div>
+                                            <Button onClick={() => handleDisconnect(connection.id)} className="bg-white border border-red-200 text-red-600 hover:bg-red-50 h-8 px-3 text-xs">Disconnect</Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                             <div className="text-center">
+                                <Button onClick={handleConnectWhatsApp} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                                    {waConnections.length > 0 ? 'Connect Another Number' : <><LinkIcon className="w-4 h-4 mr-2" /> Connect WhatsApp</>}
+                                </Button>
+                            </div>
+                        </div>
+                    </Card.Content>
+                </Card>
+            </div>
+
+            {/* Meta Connect Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in-fast">
                     <Card className="w-full max-w-lg">
                        {renderModalContent()}
+                    </Card>
+                </div>
+            )}
+
+            {/* WhatsApp Connect Modal */}
+            {isWhatsAppModalOpen && (
+                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in-fast">
+                    <Card className="w-full max-w-sm">
+                        <Card.Header>
+                            <div className="flex justify-center mb-4">
+                                <WhatsAppIcon className="w-12 h-12 text-emerald-500" />
+                            </div>
+                            <Card.Title className="text-center">Connect WhatsApp Business</Card.Title>
+                            <p className="text-center text-slate-500 text-sm mt-1">Enter your business phone number to start the verification.</p>
+                        </Card.Header>
+                        <Card.Content>
+                             {isConnectingWhatsApp ? (
+                                <div className="p-8 text-center">
+                                    <RefreshCwIcon className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-3" />
+                                    <p className="text-slate-600 font-medium">Verifying Number...</p>
+                                </div>
+                             ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone Number</label>
+                                        <input 
+                                            type="tel" 
+                                            placeholder="+1 (555) 000-0000" 
+                                            value={whatsAppNumber}
+                                            onChange={(e) => setWhatsAppNumber(e.target.value)}
+                                            className="w-full border border-slate-300 rounded-md p-2 text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="bg-emerald-50 p-3 rounded text-xs text-emerald-800 border border-emerald-100">
+                                        Note: This is a simulation. No actual SMS will be sent.
+                                    </div>
+                                </div>
+                             )}
+                        </Card.Content>
+                         {!isConnectingWhatsApp && (
+                            <div className="p-6 pt-0 flex gap-3">
+                                <Button onClick={() => setIsWhatsAppModalOpen(false)} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 w-full">Cancel</Button>
+                                <Button onClick={confirmWhatsAppConnection} disabled={!whatsAppNumber} className="bg-emerald-600 hover:bg-emerald-700 w-full">Verify & Connect</Button>
+                            </div>
+                         )}
                     </Card>
                 </div>
             )}

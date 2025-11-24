@@ -4,7 +4,7 @@ import { InboxItem, InboxItemType, UserSettings, Connection, Platform, Page, Pro
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { generateReply, ReplyResponse } from '../services/geminiService';
-import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon, AlertTriangleIcon, BookOpenIcon } from './Icons';
+import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, WhatsAppIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon, AlertTriangleIcon, BookOpenIcon } from './Icons';
 import { Input, Checkbox } from './ui/Form';
 
 const createMockItem = (id: number, connections: Connection[], settings: UserSettings): InboxItem | null => {
@@ -25,15 +25,16 @@ const createMockItem = (id: number, connections: Connection[], settings: UserSet
     
     // Use modulo to cycle through specific scenarios based on ID
     // We want to cover: 
-    // 1. Inquiry (Relevant)
-    // 2. Inquiry (Irrelevant/Missing Info)
-    // 3. Order (Complete with address)
-    // 4. Order (Incomplete - Missing address)
-    // 5. Compliment (Positive)
-    // 6. Compliment (Negative/Hate)
-    // 7. General Inquiry
+    // 0. Order (Complete)
+    // 1. Order (Incomplete)
+    // 2. Compliment (Positive)
+    // 3. Compliment (Negative)
+    // 4. Inquiry (Relevant)
+    // 5. Inquiry (Irrelevant/Missing Info)
+    // 6. General
+    // 7. WhatsApp Specific (Order Status/Quick Question)
     
-    const scenario = id % 7;
+    const scenario = id % 8;
     
     switch(scenario) {
         case 0: // Order (Complete)
@@ -66,11 +67,39 @@ const createMockItem = (id: number, connections: Connection[], settings: UserSet
             sender = "Peter Parker";
             content = "Do you sell spider-web fluid?";
             break;
-        default: // General
+        case 6: // General
             type = InboxItemType.Comment;
             sender = "Tony Stark";
             content = `Love the vibe at ${businessName}!`;
             break;
+        case 7: // WhatsApp Specific
+            type = InboxItemType.Message;
+            sender = "+1 (555) 019-2834";
+            content = `Hey, do you guys deliver to the downtown area? Also, how much is the ${product}?`;
+            break;
+        default: 
+            type = InboxItemType.Comment;
+            sender = "User";
+            content = `Cool post!`;
+            break;
+    }
+
+    // Force WhatsApp connection if the random one isn't but we have one
+    if (scenario === 7) {
+        const waConnection = connections.find(c => c.platform === 'WhatsApp');
+        if (waConnection) {
+             return {
+                id,
+                type,
+                sender,
+                avatar: `https://ui-avatars.com/api/?name=${sender}&background=25D366&color=fff`, // WhatsApp green avatar
+                content,
+                platform: 'WhatsApp',
+                connectionId: waConnection.id,
+                timestamp: `${Math.floor(Math.random() * 50) + 5}m ago`,
+                replied: false,
+            };
+        }
     }
 
     return {
@@ -90,6 +119,8 @@ const PlatformIcon = ({ platform }: { platform: Platform }) => {
   switch (platform) {
     case 'Facebook': return <FacebookIcon className="w-4 h-4 text-blue-600" />;
     case 'Instagram': return <InstagramIcon className="w-4 h-4 text-pink-600" />;
+    case 'WhatsApp': return <WhatsAppIcon className="w-4 h-4 text-emerald-500" />;
+    default: return null;
   }
 };
 
@@ -177,8 +208,8 @@ export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections
   // Automatically load messages when connections are available
   useEffect(() => {
       if (connections.length > 0 && inboxItems.length === 0) {
-          // Generate 7 items to cover all scenarios
-          const newItems = Array.from({ length: 7 }, (_, i) => createMockItem(i, connections, settings)).filter(Boolean) as InboxItem[];
+          // Generate 8 items to cover all scenarios
+          const newItems = Array.from({ length: 8 }, (_, i) => createMockItem(i, connections, settings)).filter(Boolean) as InboxItem[];
           setInboxItems(newItems);
           if (!selectedItem && newItems.length > 0 && window.innerWidth >= 768) {
             setSelectedItem(newItems[0]);
@@ -310,10 +341,10 @@ export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections
         <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 animate-fade-in">
             <LinkIcon className="w-16 h-16 text-slate-300 mb-4" />
             <h2 className="text-2xl font-bold text-slate-900 mb-2">No Accounts Connected</h2>
-            <p className="mb-6 max-w-md text-slate-500">Connect your Facebook or Instagram account to start managing messages, comments, and reviews from one place.</p>
+            <p className="mb-6 max-w-md text-slate-500">Connect your Facebook, Instagram, or WhatsApp account to start managing messages from one place.</p>
             <Button onClick={() => setActivePage('connections')}>
                 <LinkIcon className="w-4 h-4 mr-2" />
-                Connect Meta Account
+                Connect Account
             </Button>
         </div>
     );
