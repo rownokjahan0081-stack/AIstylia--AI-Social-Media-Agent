@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from './ui/Card';
 import { InboxIcon, Edit3Icon, BarChartIcon, ZapIcon } from './Icons';
@@ -60,6 +61,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, u
 
   return (
     <div className="animate-fade-in">
+      <div className="mb-6 bg-indigo-50 border border-indigo-200 p-6 rounded-xl text-center shadow-sm">
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-2">This is a Kaggle Capstone Project</h2>
+          <p className="text-indigo-700 font-medium text-lg">Try this simulation because meta dont allow any non-organaization to get its user data</p>
+      </div>
+
       <header className="mb-8">
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">AI Agent Dashboard</h1>
         <p className="text-slate-600 mt-2 text-sm md:text-base">Your autonomous social media manager for <span className="text-indigo-600 font-semibold">{settings.businessName}</span> is online.</p>

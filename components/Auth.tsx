@@ -164,10 +164,18 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4 relative overflow-hidden gap-6">
       {/* Background decoration */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none"></div>
+
+      {/* Kaggle Capstone Header */}
+      <div className="text-center z-10 animate-fade-in-down">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">This is a Kaggle Capstone Project</h1>
+        <p className="text-lg md:text-xl font-bold text-indigo-600 bg-indigo-50 inline-block px-4 py-1 rounded-full border border-indigo-100 shadow-sm">
+            Click 'Continue as guest' to try
+        </p>
+      </div>
 
       <div className="w-full max-w-md relative z-10">
         <Card className="bg-white/90 backdrop-blur-xl border-slate-200 shadow-2xl">

@@ -370,6 +370,11 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
 
     return (
         <div className="animate-fade-in space-y-8">
+            <div className="mb-6 bg-indigo-50 border border-indigo-200 p-6 rounded-xl text-center shadow-sm">
+                <h2 className="text-2xl font-extrabold text-slate-900 mb-2">This is a Kaggle Capstone Project</h2>
+                <p className="text-indigo-700 font-medium text-lg">Try this simulation because meta dont allow any non-organaization to get its user data</p>
+            </div>
+
             <header className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
                     <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Connections</h1>
