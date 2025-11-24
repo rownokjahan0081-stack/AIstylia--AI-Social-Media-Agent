@@ -4,7 +4,7 @@ import { Connection, Platform, Page } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { FacebookIcon, InstagramIcon, WhatsAppIcon, CheckCircleIcon, LinkIcon, BotIcon, AlertTriangleIcon, RefreshCwIcon, ZapIcon } from './Icons';
-import { loginToFacebook, getFacebookAccounts, revokePermissions } from '../services/facebookService';
+import { loginToFacebook, getFacebookAccounts, getWhatsAppBusinessAccounts, revokePermissions } from '../services/facebookService';
 
 interface ConnectionsProps {
     connections: Connection[];
@@ -14,17 +14,13 @@ interface ConnectionsProps {
 
 export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnections, setActivePage }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+    const [connectionType, setConnectionType] = useState<'meta' | 'whatsapp'>('meta');
     const [modalStep, setModalStep] = useState<'grantPermission' | 'connecting' | 'selectAccounts' | 'noAccountsFound'>('grantPermission');
     const [fetchedAccounts, setFetchedAccounts] = useState<{id: string, name: string, type: Platform, accessToken: string}[]>([]);
     const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
     const [isDevEnvironment, setIsDevEnvironment] = useState(false);
     const [useSimulation, setUseSimulation] = useState(false);
     
-    // WhatsApp specific state
-    const [whatsAppNumber, setWhatsAppNumber] = useState('');
-    const [isConnectingWhatsApp, setIsConnectingWhatsApp] = useState(false);
-
     useEffect(() => {
         // Facebook Login requires HTTPS. If on HTTP, we flag as Dev/HTTP environment.
         if (window.location.protocol !== 'https:') {
@@ -43,7 +39,16 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
         localStorage.setItem('social-agent-simulation-mode', String(checked));
     }
 
-    const handleConnectClick = () => {
+    const handleConnectMeta = () => {
+        setConnectionType('meta');
+        setModalStep('grantPermission');
+        setFetchedAccounts([]);
+        setSelectedAccounts([]);
+        setIsModalOpen(true);
+    };
+
+    const handleConnectWhatsApp = () => {
+        setConnectionType('whatsapp');
         setModalStep('grantPermission');
         setFetchedAccounts([]);
         setSelectedAccounts([]);
@@ -64,37 +69,62 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
 
     const fetchUserAccounts = async () => {
         try {
-            const response = await getFacebookAccounts();
-            if (response && !response.error) {
-                if (response.data && response.data.length > 0) {
-                    const accounts: {id: string, name: string, type: Platform, accessToken: string}[] = [];
-                    
-                    response.data.forEach((page: any) => {
-                        accounts.push({
-                            id: page.id,
-                            name: page.name,
-                            type: 'Facebook',
-                            accessToken: page.access_token,
+            if (connectionType === 'meta') {
+                const response = await getFacebookAccounts();
+                if (response && !response.error) {
+                    if (response.data && response.data.length > 0) {
+                        const accounts: {id: string, name: string, type: Platform, accessToken: string}[] = [];
+                        
+                        response.data.forEach((page: any) => {
+                            accounts.push({
+                                id: page.id,
+                                name: page.name,
+                                type: 'Facebook',
+                                accessToken: page.access_token,
+                            });
+
+                            if (page.instagram_business_account) {
+                                accounts.push({
+                                    id: page.instagram_business_account.id,
+                                    name: `${page.instagram_business_account.name} (Instagram)`,
+                                    type: 'Instagram',
+                                    accessToken: page.access_token, // Instagram API uses the Page's access token
+                                });
+                            }
                         });
 
-                        if (page.instagram_business_account) {
-                            accounts.push({
-                                id: page.instagram_business_account.id,
-                                name: `${page.instagram_business_account.name} (Instagram)`,
-                                type: 'Instagram',
-                                accessToken: page.access_token, // Instagram API uses the Page's access token
-                            });
-                        }
-                    });
-
-                    setFetchedAccounts(accounts);
-                    setModalStep('selectAccounts');
+                        setFetchedAccounts(accounts);
+                        setModalStep('selectAccounts');
+                    } else {
+                        setModalStep('noAccountsFound');
+                    }
                 } else {
-                    setModalStep('noAccountsFound');
+                    console.error('Error fetching Meta accounts:', response.error);
+                    setModalStep('noAccountsFound'); 
                 }
             } else {
-                console.error('Error fetching accounts:', response.error);
-                setModalStep('noAccountsFound'); 
+                // WhatsApp Flow
+                const response = await getWhatsAppBusinessAccounts();
+                if (response && !response.error) {
+                    if (response.data && response.data.length > 0) {
+                         const accounts: {id: string, name: string, type: Platform, accessToken: string}[] = [];
+                         response.data.forEach((waba: any) => {
+                             accounts.push({
+                                 id: waba.id,
+                                 name: waba.name || `WhatsApp Business (${waba.id})`,
+                                 type: 'WhatsApp',
+                                 accessToken: 'auth-via-fb-login' // Token is handled implicitly via user session for this demo
+                             });
+                         });
+                         setFetchedAccounts(accounts);
+                         setModalStep('selectAccounts');
+                    } else {
+                        setModalStep('noAccountsFound');
+                    }
+                } else {
+                    console.error('Error fetching WhatsApp accounts:', response?.error);
+                    setModalStep('noAccountsFound');
+                }
             }
         } catch (error) {
             console.error('API Error:', error);
@@ -104,10 +134,19 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
 
     const runSimulation = () => {
          setTimeout(() => {
-            const mockAccounts = [
-                { id: `mock-fb-${Date.now()}`, name: 'Demo Coffee Shop', type: 'Facebook' as Platform, accessToken: 'mock-token-fb' },
-                { id: `mock-ig-${Date.now()}`, name: 'demo_coffee_official (Instagram)', type: 'Instagram' as Platform, accessToken: 'mock-token-ig' }
-            ];
+            let mockAccounts = [];
+            
+            if (connectionType === 'meta') {
+                mockAccounts = [
+                    { id: `mock-fb-${Date.now()}`, name: 'Demo Coffee Shop', type: 'Facebook' as Platform, accessToken: 'mock-token-fb' },
+                    { id: `mock-ig-${Date.now()}`, name: 'demo_coffee_official (Instagram)', type: 'Instagram' as Platform, accessToken: 'mock-token-ig' }
+                ];
+            } else {
+                mockAccounts = [
+                    { id: `mock-wa-${Date.now()}`, name: 'Demo WhatsApp Business', type: 'WhatsApp' as Platform, accessToken: 'mock-token-wa' }
+                ];
+            }
+
             setFetchedAccounts(mockAccounts);
             setModalStep('selectAccounts');
          }, 1000);
@@ -124,7 +163,9 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
         }
 
         try {
-            const response = await loginToFacebook(rerequest);
+            const isWhatsApp = connectionType === 'whatsapp';
+            const response = await loginToFacebook(rerequest, isWhatsApp);
+            
             if (response.authResponse) {
                 fetchUserAccounts();
             } else {
@@ -167,7 +208,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
         );
     };
 
-    const handleConfirmMetaConnection = () => {
+    const handleConfirmConnection = () => {
         if (selectedAccounts.length === 0) return;
 
         const newConnectionsToAdd = selectedAccounts.map((accountId): Connection | null => {
@@ -190,39 +231,12 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
         setActivePage('dashboard');
     };
     
-    const handleConnectWhatsApp = () => {
-        setIsWhatsAppModalOpen(true);
-        setWhatsAppNumber('');
-    };
-
-    const confirmWhatsAppConnection = () => {
-        if (!whatsAppNumber) return;
-        setIsConnectingWhatsApp(true);
-        
-        // Simulation of WhatsApp verification process
-        setTimeout(() => {
-            const newConnection: Connection = {
-                platform: 'WhatsApp',
-                id: `wa-${Date.now()}`,
-                name: `WhatsApp Business (${whatsAppNumber})`,
-                status: 'connected',
-                accessToken: 'mock-wa-token'
-            };
-            
-            const updatedConnections = [...connections, newConnection];
-            setConnections(updatedConnections);
-            localStorage.setItem('social-agent-connections', JSON.stringify(updatedConnections));
-            
-            setIsConnectingWhatsApp(false);
-            setIsWhatsAppModalOpen(false);
-            setActivePage('dashboard');
-        }, 1500);
-    };
-    
     const metaConnections = connections.filter(c => c.platform === 'Facebook' || c.platform === 'Instagram');
     const waConnections = connections.filter(c => c.platform === 'WhatsApp');
 
     const renderModalContent = () => {
+        const isMeta = connectionType === 'meta';
+        
         switch(modalStep) {
             case 'grantPermission':
                 return (
@@ -230,9 +244,15 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         <div className="flex justify-center items-center mb-4 space-x-2">
                             <BotIcon className="w-12 h-12 text-slate-400" />
                             <LinkIcon className="w-6 h-6 text-slate-400" />
-                            <FacebookIcon className="w-12 h-12 text-blue-600"/>
+                            {isMeta ? (
+                                <FacebookIcon className="w-12 h-12 text-blue-600"/>
+                            ) : (
+                                <WhatsAppIcon className="w-12 h-12 text-emerald-500"/>
+                            )}
                         </div>
-                        <Card.Title className="text-xl">AI Agent wants to connect to Facebook</Card.Title>
+                        <Card.Title className="text-xl">
+                            AI Agent wants to connect to {isMeta ? 'Facebook & Instagram' : 'WhatsApp'}
+                        </Card.Title>
                         
                         {isDevEnvironment && (
                              <div className="bg-amber-50 border border-amber-200 p-3 rounded-md my-4 text-left">
@@ -247,8 +267,17 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         )}
 
                         <div className="text-left bg-slate-50 p-4 rounded-lg my-6 text-sm space-y-2 border border-slate-200">
-                           <p className="flex items-start"><CheckCircleIcon className="w-4 h-4 mr-2 mt-1 text-emerald-500 flex-shrink-0"/> Read comments and messages.</p>
-                           <p className="flex items-start"><CheckCircleIcon className="w-4 h-4 mr-2 mt-1 text-emerald-500 flex-shrink-0"/> Post content on your behalf.</p>
+                           {isMeta ? (
+                               <>
+                                <p className="flex items-start"><CheckCircleIcon className="w-4 h-4 mr-2 mt-1 text-emerald-500 flex-shrink-0"/> Read comments and messages.</p>
+                                <p className="flex items-start"><CheckCircleIcon className="w-4 h-4 mr-2 mt-1 text-emerald-500 flex-shrink-0"/> Post content on your behalf.</p>
+                               </>
+                           ) : (
+                               <>
+                                <p className="flex items-start"><CheckCircleIcon className="w-4 h-4 mr-2 mt-1 text-emerald-500 flex-shrink-0"/> Access WhatsApp Business Account.</p>
+                                <p className="flex items-start"><CheckCircleIcon className="w-4 h-4 mr-2 mt-1 text-emerald-500 flex-shrink-0"/> Send and receive messages.</p>
+                               </>
+                           )}
                         </div>
 
                         <div className="flex flex-col gap-3">
@@ -276,7 +305,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                  return (
                     <div className="p-10 flex flex-col items-center justify-center text-center h-80">
                         <BotIcon className="w-12 h-12 text-indigo-600 animate-pulse" />
-                        <h3 className="text-lg font-semibold mt-4 text-slate-900">Connecting to Meta...</h3>
+                        <h3 className="text-lg font-semibold mt-4 text-slate-900">Connecting to {isMeta ? 'Meta' : 'WhatsApp'}...</h3>
                         <p className="text-slate-500">Authenticating and fetching your accounts.</p>
                     </div>
                 );
@@ -298,7 +327,9 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                                     <div className="ml-3">
                                       <span className="text-slate-900 font-medium">{account.name}</span>
                                       <div className="flex items-center text-xs text-slate-500">
-                                        {account.type === 'Facebook' ? <FacebookIcon className="w-3 h-3 mr-1.5" /> : <InstagramIcon className="w-3 h-3 mr-1.5" />}
+                                        {account.type === 'Facebook' ? <FacebookIcon className="w-3 h-3 mr-1.5" /> : 
+                                         account.type === 'Instagram' ? <InstagramIcon className="w-3 h-3 mr-1.5" /> :
+                                         <WhatsAppIcon className="w-3 h-3 mr-1.5" />}
                                         {account.type}
                                       </div>
                                     </div>
@@ -307,7 +338,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         </Card.Content>
                         <div className="p-6 pt-0 flex justify-end gap-3">
                             <Button onClick={closeModal} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Cancel</Button>
-                            <Button onClick={handleConfirmMetaConnection} disabled={selectedAccounts.length === 0}>Connect {selectedAccounts.length} Account(s)</Button>
+                            <Button onClick={handleConfirmConnection} disabled={selectedAccounts.length === 0}>Connect {selectedAccounts.length} Account(s)</Button>
                         </div>
                     </>
                 );
@@ -316,7 +347,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                     <div className="text-center p-8 max-h-[80vh] overflow-y-auto">
                         <AlertTriangleIcon className="w-12 h-12 text-amber-500 mx-auto mb-4" />
                         <Card.Title className="text-xl">Connection Issue</Card.Title>
-                        <p className="text-sm text-slate-500 mt-2 mb-4">We couldn't connect to your accounts. You may need to grant permissions again or try Demo Mode.</p>
+                        <p className="text-sm text-slate-500 mt-2 mb-4">We couldn't find any {isMeta ? 'Facebook/Instagram' : 'WhatsApp'} accounts linked to your profile. You may need to create one or use Demo Mode.</p>
                         
                         <div className="flex flex-col gap-3 mt-4">
                              <Button onClick={() => { toggleSimulation(true); runSimulation(); }} className="bg-violet-600 hover:bg-violet-700">
@@ -397,7 +428,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                             )}
                             
                             <div className="text-center">
-                                <Button onClick={handleConnectClick} className="w-full">
+                                <Button onClick={handleConnectMeta} className="w-full">
                                     {metaConnections.length > 0 ? 'Connect Another Meta Account' : <><LinkIcon className="w-4 h-4 mr-2" /> Connect with Meta</>}
                                 </Button>
                                 {!isDevEnvironment && (
@@ -429,7 +460,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                         </div>
                     </Card.Header>
                     <Card.Content className="flex-1 flex flex-col">
-                        <p className="text-slate-500 mb-6">Connect your WhatsApp Business number to reply to customer chats automatically from the inbox.</p>
+                        <p className="text-slate-500 mb-6">Connect your WhatsApp Business Account using Facebook Login to reply to customer chats automatically.</p>
                         
                         <div className="flex-1 flex flex-col justify-end">
                              {waConnections.length > 0 && (
@@ -459,56 +490,11 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                 </Card>
             </div>
 
-            {/* Meta Connect Modal */}
+            {/* Unified Connect Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in-fast">
                     <Card className="w-full max-w-lg">
                        {renderModalContent()}
-                    </Card>
-                </div>
-            )}
-
-            {/* WhatsApp Connect Modal */}
-            {isWhatsAppModalOpen && (
-                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in-fast">
-                    <Card className="w-full max-w-sm">
-                        <Card.Header>
-                            <div className="flex justify-center mb-4">
-                                <WhatsAppIcon className="w-12 h-12 text-emerald-500" />
-                            </div>
-                            <Card.Title className="text-center">Connect WhatsApp Business</Card.Title>
-                            <p className="text-center text-slate-500 text-sm mt-1">Enter your business phone number to start the verification.</p>
-                        </Card.Header>
-                        <Card.Content>
-                             {isConnectingWhatsApp ? (
-                                <div className="p-8 text-center">
-                                    <RefreshCwIcon className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-3" />
-                                    <p className="text-slate-600 font-medium">Verifying Number...</p>
-                                </div>
-                             ) : (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone Number</label>
-                                        <input 
-                                            type="tel" 
-                                            placeholder="+1 (555) 000-0000" 
-                                            value={whatsAppNumber}
-                                            onChange={(e) => setWhatsAppNumber(e.target.value)}
-                                            className="w-full border border-slate-300 rounded-md p-2 text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        />
-                                    </div>
-                                    <div className="bg-emerald-50 p-3 rounded text-xs text-emerald-800 border border-emerald-100">
-                                        Note: This is a simulation. No actual SMS will be sent.
-                                    </div>
-                                </div>
-                             )}
-                        </Card.Content>
-                         {!isConnectingWhatsApp && (
-                            <div className="p-6 pt-0 flex gap-3">
-                                <Button onClick={() => setIsWhatsAppModalOpen(false)} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 w-full">Cancel</Button>
-                                <Button onClick={confirmWhatsAppConnection} disabled={!whatsAppNumber} className="bg-emerald-600 hover:bg-emerald-700 w-full">Verify & Connect</Button>
-                            </div>
-                         )}
                     </Card>
                 </div>
             )}

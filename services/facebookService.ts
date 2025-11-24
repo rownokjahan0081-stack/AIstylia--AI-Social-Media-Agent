@@ -53,7 +53,7 @@ export const initFacebookSdk = (): Promise<void> => {
   });
 };
 
-export const loginToFacebook = (rerequest: boolean = false): Promise<any> => {
+export const loginToFacebook = (rerequest: boolean = false, isWhatsApp: boolean = false): Promise<any> => {
     return new Promise((resolve, reject) => {
         const FB = getFB();
         const appId = getAppId();
@@ -61,8 +61,14 @@ export const loginToFacebook = (rerequest: boolean = false): Promise<any> => {
         if (!FB) return reject(new Error("Facebook SDK not loaded"));
         if (!appId) return reject(new Error("App ID not configured"));
 
+        let scope = 'public_profile,email,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish';
+        
+        if (isWhatsApp) {
+            scope += ',whatsapp_business_management,whatsapp_business_messaging';
+        }
+
         const params: any = {
-            scope: 'public_profile,email,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'
+            scope: scope
         };
 
         if (rerequest) {
@@ -84,6 +90,22 @@ export const getFacebookAccounts = (): Promise<any> => {
             '/me/accounts',
             'GET',
             { fields: 'name,id,access_token,instagram_business_account{name,id}' },
+            (response: any) => {
+                resolve(response);
+            }
+        );
+    });
+}
+
+export const getWhatsAppBusinessAccounts = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        const FB = getFB();
+        if (!FB) return reject(new Error("Facebook SDK not loaded"));
+        
+        FB.api(
+            '/me/whatsapp_business_accounts',
+            'GET',
+            { fields: 'name,id,currency,timezone_id' },
             (response: any) => {
                 resolve(response);
             }
