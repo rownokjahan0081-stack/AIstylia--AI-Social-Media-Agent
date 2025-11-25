@@ -191,12 +191,7 @@ export const generateReply = async (messageContent: string, type: string, settin
                 properties: {
                     category: { 
                         type: Type.STRING, 
-                        enum: [
-                            'greeting', 'thanks', 'ask_price', 'product_query', 'track_order', 
-                            'cancel_order', 'refund_request', 'complaint', 'interested_in_buying', 
-                            'discount_offer_query', 'other', 'praise', 'criticism', 'ask_question', 
-                            'spam_promo', 'tag_friend', 'request_collab', 'report_abuse', 'marketing_gen_z_engage'
-                        ] 
+                        description: "The classification of the message. Must be one of the 19 specified sectors."
                     },
                     replyText: { type: Type.STRING, description: "The text to send. Null if spam or auto-confirm disabled." },
                     action: { type: Type.STRING, enum: ['NONE', 'EMAIL_OWNER', 'ASK_ADDRESS'] },

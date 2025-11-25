@@ -10,6 +10,7 @@ import { Onboarding } from './components/Onboarding';
 import { Connections } from './components/Connections';
 import { Trends } from './components/Trends';
 import { SupportChat } from './components/SupportChat';
+import { ChatbotSimulator } from './components/ChatbotSimulator';
 import { DashboardIcon, InboxIcon, Edit3Icon, BarChartIcon, BotIcon, SettingsIcon, LibraryIcon, LogOutIcon, LinkIcon, TrendingUpIcon, MenuIcon, XIcon } from './components/Icons';
 import { UserSettings, Connection, Page } from './types';
 import { subscribeToAuthChanges, logoutUser } from './services/authService';
@@ -23,9 +24,7 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [demoRestartTrigger, setDemoRestartTrigger] = useState(0);
-
-  const handleRestartDemo = () => setDemoRestartTrigger(c => c + 1);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   
   useEffect(() => {
     // Initialize Facebook SDK
@@ -143,9 +142,9 @@ const App: React.FC = () => {
     
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} isGuest={isGuest} handleRestartDemo={handleRestartDemo} />;
+        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} isGuest={isGuest} openSimulator={() => setIsSimulatorOpen(true)} />;
       case 'inbox':
-        return <Inbox settings={settings} setSettings={setSettings} connections={connections} setActivePage={handlePageChange} isGuest={isGuest} demoRestartTrigger={demoRestartTrigger} handleRestartDemo={handleRestartDemo} />;
+        return <Inbox settings={settings} setSettings={setSettings} connections={connections} setActivePage={handlePageChange} isGuest={isGuest} />;
       case 'content':
         return <ContentPlanner settings={settings} connections={connections} />;
       case 'analytics':
@@ -155,11 +154,11 @@ const App: React.FC = () => {
       case 'trends':
         return <Trends settings={settings} />;
       case 'settings':
-        return <Settings settings={settings} setSettings={setSettings} isGuest={isGuest} handleRestartDemo={handleRestartDemo} />;
+        return <Settings settings={settings} setSettings={setSettings} isGuest={isGuest} />;
       case 'connections':
         return <Connections connections={connections} setConnections={setConnections} setActivePage={handlePageChange} />;
       default:
-        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} isGuest={isGuest} handleRestartDemo={handleRestartDemo} />;
+        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} isGuest={isGuest} openSimulator={() => setIsSimulatorOpen(true)} />;
     }
   };
 
@@ -259,6 +258,9 @@ const App: React.FC = () => {
         
         {/* Support Chat Widget */}
         <SupportChat />
+        
+        {/* New Simulator Modal */}
+        {settings && <ChatbotSimulator isOpen={isSimulatorOpen} setIsOpen={setIsSimulatorOpen} settings={settings} />}
       </div>
     </div>
   );

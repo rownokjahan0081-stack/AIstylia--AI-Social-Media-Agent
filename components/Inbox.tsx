@@ -3,7 +3,7 @@ import { InboxItem, InboxItemType, UserSettings, Connection, Platform, Page, Pro
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { generateReply, ReplyResponse } from '../services/geminiService';
-import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, WhatsAppIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon, AlertTriangleIcon, BookOpenIcon, RefreshCwIcon } from './Icons';
+import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, WhatsAppIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon, AlertTriangleIcon, BookOpenIcon } from './Icons';
 import { Input, Checkbox } from './ui/Form';
 
 const createMockItem = (id: number, connections: Connection[], settings: UserSettings): InboxItem | null => {
@@ -62,11 +62,9 @@ interface InboxProps {
     connections: Connection[];
     setActivePage: (page: Page) => void;
     isGuest: boolean;
-    demoRestartTrigger: number;
-    handleRestartDemo: () => void;
 }
 
-export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections, setActivePage, isGuest, demoRestartTrigger, handleRestartDemo }) => {
+export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections, setActivePage, isGuest }) => {
   const [inboxItems, setInboxItems] = useState<InboxItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<InboxItem | null>(null);
   const [generatedReply, setGeneratedReply] = useState('');
@@ -77,71 +75,21 @@ export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections
   const [localSettings, setLocalSettings] = useState<UserSettings>(settings);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({ name: '', price: 0, quantity: 100 });
   const [emailToast, setEmailToast] = useState<{visible: boolean, message: string, subtext: string}>({ visible: false, message: '', subtext: '' });
-  const [isDemoRunning, setIsDemoRunning] = useState(false);
 
   const getConnectionName = (id: string) => connections.find(c => c.id === id)?.name || 'Unknown Account';
 
-  const processSingleItemInBackground = async (itemToProcess: InboxItem) => {
-    const result = await generateReply(itemToProcess.content, itemToProcess.type, settings);
-    const replyTextToSave = result.replyText || 'Action: Emailed Business Owner';
-
-    setInboxItems(prevItems => 
-        prevItems.map(item => 
-            item.id === itemToProcess.id 
-            ? { ...item, replied: true, lastReply: replyTextToSave }
-            : item
-        )
-    );
-
-    if (selectedItem?.id === itemToProcess.id) {
-        setSelectedItem(prev => prev ? { ...prev, replied: true, lastReply: replyTextToSave } : null);
-    }
-};
-
-  const runDemoSequence = async (items: InboxItem[]) => {
-      if (isDemoRunning) return;
-      setIsDemoRunning(true);
-      for (const item of items) {
-          if (item.replied) continue;
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait before processing
-          await processSingleItemInBackground(item);
-      }
-      setIsDemoRunning(false);
-  };
-
-  const restartDemo = () => {
-      const newItems = Array.from({ length: 19 }, (_, i) => createMockItem(i, connections, settings)).filter(Boolean) as InboxItem[];
-      setInboxItems(newItems);
-      
-      if (!selectedItem && newItems.length > 0) {
-          setSelectedItem(newItems[0]);
-      }
-      
-      runDemoSequence(newItems);
-  };
-
   useEffect(() => {
-    if (isGuest && demoRestartTrigger > 0) {
-        restartDemo();
-    }
-  }, [demoRestartTrigger]);
-
-  useEffect(() => {
-    if (isGuest && connections.length > 0 && inboxItems.length === 0) {
+    if (connections.length > 0 && inboxItems.length === 0) {
         const newItems = Array.from({ length: 19 }, (_, i) => createMockItem(i, connections, settings)).filter(Boolean) as InboxItem[];
         setInboxItems(newItems);
-        if (!selectedItem && newItems.length > 0) {
+        // For guests, automatically select the first item to kick off the single-item demo
+        if (isGuest && !selectedItem && newItems.length > 0) {
             setSelectedItem(newItems[0]);
         }
-        runDemoSequence(newItems);
-    } else if (connections.length > 0 && inboxItems.length === 0) {
-        const newItems = Array.from({ length: 19 }, (_, i) => createMockItem(i, connections, settings)).filter(Boolean) as InboxItem[];
-        setInboxItems(newItems);
     }
-  }, [isGuest, connections]);
+  }, [isGuest, connections, inboxItems.length, settings]);
   
-// Fix: Defined handleTeachAI function to save user feedback as a new reply guideline.
-const handleTeachAI = () => {
+  const handleTeachAI = () => {
     if (!selectedItem || !generatedReply) return;
 
     const newGuideline = `When a user's message is similar to "${selectedItem.content}", reply with: "${generatedReply}"`;
@@ -158,6 +106,7 @@ const handleTeachAI = () => {
     setEmailToast({ visible: true, message: 'Guideline Saved', subtext: 'The AI will remember this for future replies.' });
     setTimeout(() => setEmailToast({ visible: false, message: '', subtext: '' }), 4000);
   };
+  
   const handleGenerateReply = async () => {
     if (!selectedItem || selectedItem.replied) return;
     setIsLoading(true);
@@ -170,10 +119,20 @@ const handleTeachAI = () => {
   };
   
   useEffect(() => {
-    if (selectedItem && !isGuest) {
+    if (selectedItem) {
       handleGenerateReply();
     }
-  }, [selectedItem, isGuest]);
+  }, [selectedItem]);
+
+  useEffect(() => {
+    // This effect handles auto-sending if enabled
+    if (generatedReply && settings.autoReply && !isSent && !isLoading && analysisResult?.replyText) {
+      const timer = setTimeout(() => {
+        handleSendReply(analysisResult);
+      }, 2000); // 2 second delay for user to see the reply
+      return () => clearTimeout(timer);
+    }
+  }, [generatedReply, settings.autoReply, isSent, isLoading, analysisResult]);
 
   const handleSendReply = (currentAnalysis: ReplyResponse | null = analysisResult) => {
     setIsSent(true);
@@ -238,8 +197,6 @@ const handleTeachAI = () => {
       localStorage.setItem('social-agent-settings', JSON.stringify(localSettings));
       setShowOrderConfig(false);
   }
-
-  // ... (rest of the component is UI, which will be shortened for brevity)
   
   if (connections.length === 0) {
     return (
@@ -272,14 +229,7 @@ const handleTeachAI = () => {
         <Card className="h-full flex flex-col">
           <Card.Header className="flex-shrink-0 flex justify-between items-center border-b border-slate-100">
             <Card.Title>Inbox</Card.Title>
-            {isGuest ? (
-                <Button onClick={handleRestartDemo} disabled={isDemoRunning} className="bg-violet-100 text-violet-700 hover:bg-violet-200 h-8 px-3 text-xs">
-                    <RefreshCwIcon className={`w-3 h-3 mr-2 ${isDemoRunning ? 'animate-spin' : ''}`} />
-                    {isDemoRunning ? 'Demo Running...' : 'Restart Demo'}
-                </Button>
-            ) : (
-                <button onClick={() => { setLocalSettings(settings); setShowOrderConfig(true); }} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500" title="Configure Order Automation"><SettingsIcon className="w-4 h-4" /></button>
-            )}
+            <button onClick={() => { setLocalSettings(settings); setShowOrderConfig(true); }} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500" title="Configure Order Automation"><SettingsIcon className="w-4 h-4" /></button>
           </Card.Header>
           <Card.Content className="p-0 flex-1 overflow-y-auto">
             {inboxItems.length > 0 ? (
@@ -349,7 +299,7 @@ const handleTeachAI = () => {
                     )}
                     <div className="mt-4">
                         {!settings.autoReply && (<Button onClick={() => handleSendReply()} disabled={isLoading || isSent || (!generatedReply && analysisResult?.action === 'NONE')} className="w-full md:w-auto">{isSent ? 'Processed!' : (generatedReply ? 'Send Reply' : 'Confirm Action')}</Button>)}
-                        {settings.autoReply && !isLoading && !isGuest && (<div className="flex items-center justify-center md:justify-start text-sm text-emerald-600 h-10 px-4 rounded-md bg-emerald-50">{isSent ? <><CheckCircleIcon className="w-4 h-4 mr-2" /><span>Processed</span></> : <><BotIcon className="w-4 h-4 mr-2 animate-pulse" /><span>Processing...</span></>}</div>)}
+                        {settings.autoReply && !isLoading && (<div className="flex items-center justify-center md:justify-start text-sm text-emerald-600 h-10 px-4 rounded-md bg-emerald-50">{isSent ? <><CheckCircleIcon className="w-4 h-4 mr-2" /><span>Processed</span></> : <><BotIcon className="w-4 h-4 mr-2 animate-pulse" /><span>Processing...</span></>}</div>)}
                     </div>
                   </div>
               )}

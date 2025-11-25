@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from './ui/Card';
-import { InboxIcon, Edit3Icon, BarChartIcon, ZapIcon, RefreshCwIcon } from './Icons';
+import { InboxIcon, Edit3Icon, BarChartIcon, ZapIcon, BotIcon } from './Icons';
 import { UserSettings, Page, Connection } from '../types';
 
 interface DashboardProps {
@@ -9,10 +9,10 @@ interface DashboardProps {
   user: any;
   connections: Connection[];
   isGuest: boolean;
-  handleRestartDemo: () => void;
+  openSimulator: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, user, connections, isGuest, handleRestartDemo }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, user, connections, isGuest, openSimulator }) => {
 
   const quickActions = [
     {
@@ -22,14 +22,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, u
       action: () => setActivePage('inbox'),
       color: 'indigo',
       show: true,
-    },
-    {
-      title: 'Restart Inbox Demo',
-      description: 'Reset and re-run the auto-reply simulation.',
-      icon: <RefreshCwIcon className="w-8 h-8 text-violet-500" />,
-      action: handleRestartDemo,
-      color: 'violet',
-      show: isGuest
     },
     {
       title: 'Manage Schedule',
@@ -45,6 +37,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, u
       icon: <BarChartIcon className="w-8 h-8 text-amber-500" />,
       action: () => setActivePage('analytics'),
       color: 'amber',
+      show: true,
+    },
+    {
+      title: 'Test the Chatbot',
+      description: 'Simulate a customer conversation.',
+      icon: <BotIcon className="w-8 h-8 text-violet-500" />,
+      action: openSimulator,
+      color: 'violet',
       show: true,
     },
   ];

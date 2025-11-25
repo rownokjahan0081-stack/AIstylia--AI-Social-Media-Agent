@@ -19,7 +19,9 @@ export const SupportChat: React.FC = () => {
     };
 
     useEffect(() => {
-        scrollToBottom();
+        if (isOpen) {
+            scrollToBottom();
+        }
     }, [messages, isOpen]);
 
     const handleSend = async (e?: React.FormEvent) => {

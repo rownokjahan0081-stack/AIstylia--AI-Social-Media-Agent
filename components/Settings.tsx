@@ -4,16 +4,15 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input, TextArea, Checkbox } from './ui/Form';
 import { getOnboardingSuggestions } from '../services/geminiService';
-import { SparklesIcon, RefreshCwIcon } from './Icons';
+import { SparklesIcon } from './Icons';
 
 interface SettingsProps {
     settings: UserSettings;
     setSettings: React.Dispatch<React.SetStateAction<UserSettings | null>>;
     isGuest: boolean;
-    handleRestartDemo: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ settings, setSettings, isGuest, handleRestartDemo }) => {
+export const Settings: React.FC<SettingsProps> = ({ settings, setSettings, isGuest }) => {
     const [localSettings, setLocalSettings] = useState<UserSettings>(settings);
     const [isSaved, setIsSaved] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -195,14 +194,8 @@ export const Settings: React.FC<SettingsProps> = ({ settings, setSettings, isGue
                 </Card>
             </div>
 
-            <div className="mt-8 flex justify-between items-center">
-                 {isGuest && (
-                    <Button onClick={handleRestartDemo} className="bg-violet-100 text-violet-700 hover:bg-violet-200">
-                        <RefreshCwIcon className="w-4 h-4 mr-2" />
-                        Restart Inbox Demo
-                    </Button>
-                )}
-                <Button onClick={handleSave} className={`ml-auto ${isSaved ? 'bg-emerald-600' : ''}`}>
+            <div className="mt-8 flex justify-end">
+                <Button onClick={handleSave} className={isSaved ? 'bg-emerald-600' : ''}>
                     {isSaved ? 'Saved!' : 'Save Changes'}
                 </Button>
             </div>
