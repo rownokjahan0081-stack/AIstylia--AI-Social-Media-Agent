@@ -23,6 +23,9 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [demoRestartTrigger, setDemoRestartTrigger] = useState(0);
+
+  const handleRestartDemo = () => setDemoRestartTrigger(c => c + 1);
   
   useEffect(() => {
     // Initialize Facebook SDK
@@ -80,6 +83,7 @@ const App: React.FC = () => {
             autoPost: false,
             autoReply: true,
             autoConfirmOrders: true,
+            orderConfirmationEmail: 'guest-orders@demo.com',
             productCatalog: [
                 { id: "p1", name: "Bag of House Blend", price: 18, quantity: 50 },
                 { id: "p2", name: "Chocolate Croissant", price: 4.5, quantity: 20 },
@@ -134,13 +138,14 @@ const App: React.FC = () => {
   };
 
   const renderPage = () => {
+    const isGuest = user?.uid === 'guest-user';
     if (!settings) return <div className="text-center p-10 text-slate-500">Loading settings...</div>;
     
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} />;
+        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} isGuest={isGuest} handleRestartDemo={handleRestartDemo} />;
       case 'inbox':
-        return <Inbox settings={settings} setSettings={setSettings} connections={connections} setActivePage={handlePageChange} />;
+        return <Inbox settings={settings} setSettings={setSettings} connections={connections} setActivePage={handlePageChange} isGuest={isGuest} demoRestartTrigger={demoRestartTrigger} handleRestartDemo={handleRestartDemo} />;
       case 'content':
         return <ContentPlanner settings={settings} connections={connections} />;
       case 'analytics':
@@ -150,11 +155,11 @@ const App: React.FC = () => {
       case 'trends':
         return <Trends settings={settings} />;
       case 'settings':
-        return <Settings settings={settings} setSettings={setSettings} />;
+        return <Settings settings={settings} setSettings={setSettings} isGuest={isGuest} handleRestartDemo={handleRestartDemo} />;
       case 'connections':
         return <Connections connections={connections} setConnections={setConnections} setActivePage={handlePageChange} />;
       default:
-        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} />;
+        return <Dashboard setActivePage={handlePageChange} settings={settings} user={user} connections={connections} isGuest={isGuest} handleRestartDemo={handleRestartDemo} />;
     }
   };
 
@@ -235,9 +240,6 @@ const App: React.FC = () => {
               <LogOutIcon className="w-5 h-5" />
               <span className="ml-3">Log Out</span>
             </button>
-          <div className="mt-4 text-center text-slate-400 text-xs">
-            <p>&copy; 2024 Social AI Inc.</p>
-          </div>
         </div>
       </aside>
 

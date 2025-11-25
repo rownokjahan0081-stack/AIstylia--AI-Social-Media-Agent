@@ -24,7 +24,7 @@ const getApiKey = () => {
     }
     
     // 3. Fallback Key (Note: May have domain restrictions)
-    return "AIzaSyBTPhYMDd3drH535s4keuQXtTH6zEVcbZo";
+    return "AIzaSyD6CBlzpOW0iPF25fEVMmb9HWRe5MWS1Zo";
 };
 
 const API_KEY = getApiKey();
@@ -104,10 +104,11 @@ export const getOnboardingSuggestions = async (businessDescription: string): Pro
 
 export interface ReplyResponse {
     replyText: string | null; // Null if we shouldn't reply (e.g. disabled order)
-    category: 'INQUIRY' | 'ORDER' | 'COMPLIMENT';
+    category: string;
     action: 'NONE' | 'EMAIL_OWNER' | 'ASK_ADDRESS';
     internalNote?: string; // For the UI toast
     orderCode?: string;
+    soldItems?: { productId: string, quantity: number }[];
 }
 
 export const generateReply = async (messageContent: string, type: string, settings: UserSettings): Promise<ReplyResponse> => {
@@ -116,12 +117,22 @@ export const generateReply = async (messageContent: string, type: string, settin
   // Prepare catalog string if auto-confirm is on
   let catalogString = "";
   if (settings.productCatalog && settings.productCatalog.length > 0) {
-       catalogString = `Active Product Catalog (Name | Price | Stock): 
-       ${settings.productCatalog.map(p => `- ${p.name}: $${p.price} (Qty: ${p.quantity})`).join('\n')}
+       catalogString = `Active Product Catalog (ID | Name | Price | Stock): 
+       ${settings.productCatalog.map(p => `- ID: ${p.id} | Name: ${p.name} | Price: $${p.price} | Stock: ${p.quantity}`).join('\n')}
        
        Shipping Cost: $5.00 Flat Rate.`;
   } else {
        catalogString = "No product catalog available. Assume items are out of stock unless generic.";
+  }
+
+  // Include user-taught guidelines
+  let guidelinesPrompt = "";
+  if (settings.replyGuidelines && settings.replyGuidelines.length > 0) {
+      guidelinesPrompt = `
+      \nUSER GUIDELINES & SPECIFIC INSTRUCTIONS (STRICTLY FOLLOW THESE PATTERNS):
+      The user has explicitly taught you how to reply in certain situations. Adhere to these rules above all else:
+      ${settings.replyGuidelines.map((g, i) => `${i+1}. ${g}`).join('\n')}
+      \n`;
   }
 
   const systemPrompt = `You are an expert social media manager for ${settings.businessName}, a ${settings.businessDescription}. 
@@ -132,28 +143,39 @@ export const generateReply = async (messageContent: string, type: string, settin
             
             ${catalogString}
             Auto-Confirm Orders Enabled: ${settings.autoConfirmOrders}
+            ${guidelinesPrompt}
 
-            TASK: Analyze the message and categorize it into one of three sectors: INQUIRY, ORDER, or COMPLIMENT.
+            TASK: Analyze the message and classify it into EXACTLY ONE of the following sectors:
+            [greeting, thanks, ask_price, product_query, track_order, cancel_order, refund_request, complaint, interested_in_buying, discount_offer_query, other, praise, criticism, ask_question, spam_promo, tag_friend, request_collab, report_abuse, marketing_gen_z_engage]
 
-            SECTOR 1: INQUIRY
-            - Answer relevant questions about the business, products, or hours.
-            - If the question is irrelevant (e.g., "Who is the president?", "Math homework"), politely say sorry and decline to answer.
-            - CRITICAL: If the user asks a relevant question but you do NOT have the information (e.g., "Is your coffee gluten-free?" and you don't know), say sorry for not having the information and state that you will email the owner to find out. Set 'action' to 'EMAIL_OWNER'.
+            RESPONSE RULES BY SECTOR:
+            
+            1. greeting: Respond warmly.
+            2. thanks: You're welcome!
+            3. ask_price: Provide price if in catalog, else ask user to check website.
+            4. product_query: Answer relevant questions. If unknown, set action 'EMAIL_OWNER'.
+            5. track_order: Ask for Order ID if not provided, or say you'll check.
+            6. cancel_order: Ask for Order ID and reason.
+            7. refund_request: Politely explain policy (contact support email).
+            8. complaint: Apologize sincerely, ask for details to resolve via DM.
+            9. interested_in_buying: Check catalog. If 'Auto-Confirm Orders' is TRUE, check stock/address, calculate total + $5 shipping, generate Order Code. If FALSE, email owner.
+            10. discount_offer_query: State current offers or say no current discounts.
+            11. other: General polite response.
+            12. praise: Thank them enthusiastically!
+            13. criticism: Respond professionally and apologize if valid.
+            14. ask_question: Answer if business-related.
+            15. spam_promo: Do NOT reply (replyText: null). Action: 'NONE'.
+            16. tag_friend: "Thanks for tagging!" (if positive).
+            17. request_collab: Ask them to email ${settings.orderConfirmationEmail || 'the business email'}.
+            18. report_abuse: Thank them for reporting, state you will review.
+            19. marketing_gen_z_engage: Reply using trendy Gen Z slang/emojis appropriate for the brand.
 
-            SECTOR 2: ORDER
-            - If 'Auto-Confirm Orders' is FALSE: Do NOT generate a reply text. Set 'replyText' to null. Set 'action' to 'EMAIL_OWNER'. Set 'internalNote' to 'Order forwarding to email (Auto-confirm disabled)'.
+            SPECIAL ORDER LOGIC (for 'interested_in_buying' or explicit orders):
+            - If 'Auto-Confirm Orders' is FALSE: Set 'replyText' to null. Set 'action' to 'EMAIL_OWNER'.
             - If 'Auto-Confirm Orders' is TRUE:
-                1. Check Stock: Is the item in the catalog? If no/out of stock, apologize.
-                2. Check Address: Did they provide a delivery address? If NO, ask for it. Set 'action' to 'ASK_ADDRESS'.
-                3. If Stock OK and Address OK:
-                   - Calculate Total: (Price * Qty) + 5.
-                   - Generate a random 6-digit Order Code (e.g., ORD-8392).
-                   - Confirm the order, state the total, provide the Order Code, and mention it has been emailed.
-                   - Set 'action' to 'EMAIL_OWNER' (to notify business).
-
-            SECTOR 3: COMPLIMENT
-            - Positive: Thank them warmly according to brand voice.
-            - Negative/Hateful: Respond politely and apologetically. Do not get defensive.
+                1. Check Stock.
+                2. Check Address (Set 'action' to 'ASK_ADDRESS' if missing).
+                3. If Stock OK & Address OK: Confirm order, Total = (Price*Qty)+5. Generate Code. Set 'action' to 'EMAIL_OWNER'. Populate 'soldItems'.
 
             Output must be a JSON object.`;
 
@@ -167,11 +189,29 @@ export const generateReply = async (messageContent: string, type: string, settin
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    category: { type: Type.STRING, enum: ['INQUIRY', 'ORDER', 'COMPLIMENT'] },
-                    replyText: { type: Type.STRING, description: "The text to send to the customer. Null if auto-confirm is disabled for orders." },
+                    category: { 
+                        type: Type.STRING, 
+                        enum: [
+                            'greeting', 'thanks', 'ask_price', 'product_query', 'track_order', 
+                            'cancel_order', 'refund_request', 'complaint', 'interested_in_buying', 
+                            'discount_offer_query', 'other', 'praise', 'criticism', 'ask_question', 
+                            'spam_promo', 'tag_friend', 'request_collab', 'report_abuse', 'marketing_gen_z_engage'
+                        ] 
+                    },
+                    replyText: { type: Type.STRING, description: "The text to send. Null if spam or auto-confirm disabled." },
                     action: { type: Type.STRING, enum: ['NONE', 'EMAIL_OWNER', 'ASK_ADDRESS'] },
-                    internalNote: { type: Type.STRING, description: "A short summary of the action for the dashboard toast notification." },
-                    orderCode: { type: Type.STRING, description: "The generated order code if applicable." }
+                    internalNote: { type: Type.STRING, description: "A short summary for the dashboard toast." },
+                    orderCode: { type: Type.STRING, description: "Generated order code." },
+                    soldItems: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                productId: { type: Type.STRING },
+                                quantity: { type: Type.NUMBER }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -179,16 +219,17 @@ export const generateReply = async (messageContent: string, type: string, settin
     
     const parsed = safeParseJSON(response.text || "");
     return {
-        category: parsed.category || 'INQUIRY',
+        category: parsed.category || 'other',
         replyText: parsed.replyText || null,
         action: parsed.action || 'NONE',
         internalNote: parsed.internalNote || '',
-        orderCode: parsed.orderCode
+        orderCode: parsed.orderCode,
+        soldItems: parsed.soldItems || []
     };
   } catch (error) {
     console.error("Error generating reply:", error);
     return {
-        category: 'INQUIRY',
+        category: 'other',
         replyText: "I'm sorry, I'm having trouble processing your request right now.",
         action: 'NONE'
     };

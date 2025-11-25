@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Card } from './ui/Card';
-import { InboxIcon, Edit3Icon, BarChartIcon, ZapIcon } from './Icons';
+import { InboxIcon, Edit3Icon, BarChartIcon, ZapIcon, RefreshCwIcon } from './Icons';
 import { UserSettings, Page, Connection } from '../types';
 
 interface DashboardProps {
@@ -9,9 +8,11 @@ interface DashboardProps {
   settings: UserSettings;
   user: any;
   connections: Connection[];
+  isGuest: boolean;
+  handleRestartDemo: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, user, connections }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, user, connections, isGuest, handleRestartDemo }) => {
 
   const quickActions = [
     {
@@ -19,25 +20,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, u
       description: 'Check new messages and send replies.',
       icon: <InboxIcon className="w-8 h-8 text-indigo-600" />,
       action: () => setActivePage('inbox'),
-      color: 'indigo'
+      color: 'indigo',
+      show: true,
+    },
+    {
+      title: 'Restart Inbox Demo',
+      description: 'Reset and re-run the auto-reply simulation.',
+      icon: <RefreshCwIcon className="w-8 h-8 text-violet-500" />,
+      action: handleRestartDemo,
+      color: 'violet',
+      show: isGuest
     },
     {
       title: 'Manage Schedule',
       description: 'View and approve upcoming posts.',
       icon: <Edit3Icon className="w-8 h-8 text-emerald-500" />,
       action: () => setActivePage('content'),
-      color: 'emerald'
+      color: 'emerald',
+      show: true,
     },
     {
       title: 'View Analytics',
       description: 'Analyze your social media performance.',
       icon: <BarChartIcon className="w-8 h-8 text-amber-500" />,
       action: () => setActivePage('analytics'),
-      color: 'amber'
+      color: 'amber',
+      show: true,
     },
   ];
 
-  const isGuest = user?.uid === 'guest-user';
   const isConnected = connections.length > 0;
   
   // Logic for Engagement Rate Display
@@ -103,8 +114,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, u
 
       <div>
         <h2 className="text-2xl font-bold text-slate-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {quickActions.map((item) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {quickActions.filter(item => item.show).map((item) => (
             <button key={item.title} onClick={item.action} className={`group text-left p-6 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-${item.color}-500 transition-all duration-300 shadow-sm`}>
               <div className="flex items-center justify-between">
                 {item.icon}

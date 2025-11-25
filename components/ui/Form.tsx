@@ -1,9 +1,10 @@
 import React from 'react';
 
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string; description?: string }> = ({ label, description, ...props }) => (
   <div>
     <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
     <input {...props} className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 focus:border-transparent focus:outline-none placeholder:text-slate-400" />
+    {description && <p className="text-xs text-slate-500 mt-2">{description}</p>}
   </div>
 );
 

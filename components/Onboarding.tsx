@@ -32,6 +32,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, initialSetti
     autoPost: false,
     autoReply: false,
     autoConfirmOrders: false,
+    orderConfirmationEmail: '',
     productCatalog: [],
     replyGuidelines: []
   });
@@ -153,7 +154,18 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, initialSetti
                      />
                      
                      {(settings.autoConfirmOrders) && (
-                        <div className="mt-4 pl-4 border-l-2 border-slate-200">
+                        <div className="mt-4 pl-4 border-l-2 border-slate-200 animate-fade-in">
+                            <div className="mb-6">
+                                <Input 
+                                    label="Order Confirmation Email" 
+                                    type="email" 
+                                    placeholder="orders@yourbusiness.com" 
+                                    value={settings.orderConfirmationEmail || ''} 
+                                    onChange={e => handleInputChange('orderConfirmationEmail', e.target.value)} 
+                                    description="The AI will send customer order details to this address."
+                                />
+                            </div>
+
                             <h3 className="text-sm font-semibold text-slate-700 mb-3">Product Catalog</h3>
                             
                             <div className="space-y-3 mb-4">
