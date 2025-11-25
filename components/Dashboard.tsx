@@ -75,6 +75,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, u
       <div className="mb-6 bg-indigo-50 border border-indigo-200 p-6 rounded-xl text-center shadow-sm">
           <h2 className="text-2xl font-extrabold text-slate-900 mb-2">This is a Kaggle Capstone Project</h2>
           <p className="text-indigo-700 font-medium text-lg">Try this simulation because meta dont allow any non-organaization to get its user data</p>
+          <p className="text-indigo-700 font-medium text-lg mt-1">Gemini API key does not work without billing</p>
       </div>
 
       <header className="mb-8">

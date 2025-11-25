@@ -24,7 +24,7 @@ const getApiKey = () => {
     }
     
     // 3. Fallback Key (Note: May have domain restrictions)
-    return "AIzaSyD6CBlzpOW0iPF25fEVMmb9HWRe5MWS1Zo";
+    return "AIzaSyB2tXvgk_Y8BRkprwz9dDGSBwe5TRBC3XU";
 };
 
 const API_KEY = getApiKey();
@@ -221,11 +221,18 @@ export const generateReply = async (messageContent: string, type: string, settin
         orderCode: parsed.orderCode,
         soldItems: parsed.soldItems || []
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating reply:", error);
+     let userFriendlyMessage = "I'm sorry, I'm having trouble processing your request right now.";
+    if (error.message && (error.message.includes('API key not valid') || error.message.includes('permission denied'))) {
+        userFriendlyMessage = "API Error: The configured API key is invalid or lacks permissions. Please check your key in Google AI Studio and ensure billing is enabled.";
+    } else if (error.message && error.message.includes('500')) {
+        userFriendlyMessage = "API Error: The server had a temporary issue. This can happen with complex requests. Please try again in a moment.";
+    }
+
     return {
         category: 'other',
-        replyText: "I'm sorry, I'm having trouble processing your request right now.",
+        replyText: userFriendlyMessage,
         action: 'NONE'
     };
   }
