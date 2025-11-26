@@ -12,12 +12,12 @@ import {
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDXJLTFmCIj8A_cwcyVIjnAToAp45VvbJQ",
+  apiKey: "Firebase API key",
   authDomain: "aistylia.firebaseapp.com",
   projectId: "aistylia",
   storageBucket: "aistylia.firebasestorage.app",
   messagingSenderId: "11852300884",
-  appId: "1:11852300884:web:8bbcb629d0dff28dcda3c1",
+  appId: "APP ID",
   measurementId: "G-PGS1BS67Q4"
 };
 
