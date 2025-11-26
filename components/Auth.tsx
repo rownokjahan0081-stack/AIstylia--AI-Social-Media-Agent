@@ -170,11 +170,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none"></div>
 
       {/* Kaggle Capstone Header */}
-      <div className="text-center z-10 animate-fade-in-down">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">This is a Kaggle Capstone Project</h1>
-        <p className="text-lg md:text-xl font-bold text-indigo-600 bg-indigo-50 inline-block px-4 py-1 rounded-full border border-indigo-100 shadow-sm">
-            Click 'Continue as guest' to try
-        </p>
+      <div className="text-center z-10 animate-fade-in-down bg-amber-50 border border-amber-200 p-6 rounded-xl shadow-md max-w-lg">
+          <p className="text-amber-800 font-semibold text-base">
+              This Page is only for the proof of deployment and just a frontend for showcasing the AI Agent Features. No Features work here because of the missing API key with billing.
+          </p>
       </div>
 
       <div className="w-full max-w-md relative z-10">

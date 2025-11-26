@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from './ui/Card';
 import { InboxIcon, Edit3Icon, BarChartIcon, ZapIcon, BotIcon } from './Icons';
@@ -72,10 +73,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActivePage, settings, u
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-6 bg-indigo-50 border border-indigo-200 p-6 rounded-xl text-center shadow-sm">
-          <h2 className="text-2xl font-extrabold text-slate-900 mb-2">This is a Kaggle Capstone Project</h2>
-          <p className="text-indigo-700 font-medium text-lg">Try this simulation because meta dont allow any non-organaization to get its user data</p>
-          <p className="text-indigo-700 font-medium text-lg mt-1">Gemini API key does not work without billing</p>
+      <div className="mb-8 bg-amber-50 border border-amber-200 p-6 rounded-xl shadow-sm">
+          <p className="text-amber-800 font-semibold text-center text-base">
+              This Page is only for the proof of deployment and just a frontend for showcasing the AI Agent Features. No Features work here because of the missing API key with billing.
+          </p>
       </div>
 
       <header className="mb-8">

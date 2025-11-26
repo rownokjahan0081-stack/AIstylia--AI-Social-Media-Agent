@@ -284,7 +284,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                             <Button onClick={() => handleGrantPermission(false)}>
                                 {(useSimulation || isDevEnvironment) ? 'Start Simulation' : 'Continue with Facebook'}
                             </Button>
-                            <Button onClick={closeModal} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Cancel</Button>
+                            <Button onClick={closeModal} className="bg-white !text-black border border-slate-300 hover:bg-slate-50">Cancel</Button>
                         </div>
                         
                          <div className="mt-6 flex justify-center">
@@ -337,7 +337,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                             ))}
                         </Card.Content>
                         <div className="p-6 pt-0 flex justify-end gap-3">
-                            <Button onClick={closeModal} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Cancel</Button>
+                            <Button onClick={closeModal} className="bg-white !text-black border border-slate-300 hover:bg-slate-50">Cancel</Button>
                             <Button onClick={handleConfirmConnection} disabled={selectedAccounts.length === 0}>Connect {selectedAccounts.length} Account(s)</Button>
                         </div>
                     </>
@@ -358,7 +358,7 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
                                 <RefreshCwIcon className="w-4 h-4 mr-2" />
                                 Reconnect
                             </Button>
-                            <Button onClick={closeModal} className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">
+                            <Button onClick={closeModal} className="bg-white !text-black border border-slate-300 hover:bg-slate-50">
                                 Cancel
                             </Button>
                         </div>
@@ -370,10 +370,10 @@ export const Connections: React.FC<ConnectionsProps> = ({ connections, setConnec
 
     return (
         <div className="animate-fade-in space-y-8">
-            <div className="mb-6 bg-indigo-50 border border-indigo-200 p-6 rounded-xl text-center shadow-sm">
-                <h2 className="text-2xl font-extrabold text-slate-900 mb-2">This is a Kaggle Capstone Project</h2>
-                <p className="text-indigo-700 font-medium text-lg">Try this simulation because meta dont allow any non-organaization to get its user data</p>
-                <p className="text-indigo-700 font-medium text-lg mt-1">Gemini API key does not work without billing</p>
+            <div className="mb-8 bg-amber-50 border border-amber-200 p-6 rounded-xl shadow-sm">
+                <p className="text-amber-800 font-semibold text-center text-base">
+                    This Page is only for the proof of deployment and just a frontend for showcasing the AI Agent Features. No Features work here because of the missing API key with billing.
+                </p>
             </div>
 
             <header className="flex flex-col md:flex-row justify-between md:items-center gap-4">
