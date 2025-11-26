@@ -1,4 +1,4 @@
-# Autonomy Demonstration (Required by Kaggle)
+# Autonomy Demonstration
 
 This section demonstrates how this system runs **fully autonomously** (no manual intervention) to take a business brief, generate content, schedule it, create a mock campaign, handle incoming messages, qualify leads, and produce evaluation metrics.
 
