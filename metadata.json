@@ -1,5 +1,5 @@
 {
   "name": "Ai Social Media Agent",
-  "description": "An AI agent to automate enterprise social media tasks like replying to messages, analyzing successful posts, and generating new content to enhance customer engagement.",
+  "description": "A multi-agent system that automates inbox reply, content creation, analytics, and client communication across Facebook & web interfaces.",
   "requestFramePermissions": []
 }
