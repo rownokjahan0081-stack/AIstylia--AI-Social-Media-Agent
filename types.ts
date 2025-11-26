@@ -17,6 +17,15 @@ export interface Connection {
   accessToken: string; // This will be a mock token for simulation
 }
 
+export interface ReplyResponse {
+    replyText: string | null;
+    category: string;
+    action: 'NONE' | 'EMAIL_OWNER' | 'ASK_ADDRESS';
+    internalNote?: string;
+    orderCode?: string;
+    soldItems?: { productId: string, quantity: number }[];
+}
+
 export interface InboxItem {
   id: number;
   type: InboxItemType;
@@ -28,6 +37,7 @@ export interface InboxItem {
   timestamp: string;
   replied?: boolean;
   lastReply?: string;
+  mockResponse?: ReplyResponse;
 }
 
 export interface Post {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { InboxItem, InboxItemType, UserSettings, Connection, Platform, Page, Product } from '../types';
+import { InboxItem, InboxItemType, UserSettings, Connection, Platform, Page, Product, ReplyResponse } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { generateReply, ReplyResponse } from '../services/geminiService';
+import { generateReply } from '../services/geminiService';
 import { MessageSquareIcon, StarIcon, ThumbsUpIcon, FacebookIcon, InstagramIcon, WhatsAppIcon, LinkIcon, CheckCircleIcon, BotIcon, ArrowLeftIcon, SettingsIcon, XIcon, AlertTriangleIcon, BookOpenIcon } from './Icons';
 import { Input, Checkbox } from './ui/Form';
 
@@ -14,37 +14,76 @@ const createMockItem = (id: number, connections: Connection[], settings: UserSet
     let type = InboxItemType.Message;
     let content = "";
     let sender = `User ${id}`;
-    
-    const product = settings.productCatalog && settings.productCatalog.length > 0 
-        ? settings.productCatalog[0].name 
-        : "Signature Blend";
+    let mockResponse: ReplyResponse | undefined = undefined;
+
+    const product = settings.productCatalog?.[0] || { id: 'p1', name: 'Signature Blend', price: 18 };
     
     const scenario = id % 19;
     
     switch(scenario) {
-        case 0: sender = "Alice"; content = "Hi there! Hope you're having a great day."; type = InboxItemType.Message; break;
-        case 1: sender = "Bob"; content = "Thanks for the quick delivery! Really appreciate it."; type = InboxItemType.Comment; break;
-        case 2: sender = "Charlie"; content = `How much is the ${product}? I couldn't find it on the site.`; type = InboxItemType.Message; break;
-        case 3: sender = "David"; content = "Is your coffee ethically sourced and fair trade?"; type = InboxItemType.Message; break;
-        case 4: sender = "Eve"; content = "I haven't received my tracking number yet. Order #9921."; type = InboxItemType.Message; break;
-        case 5: sender = "Frank"; content = "Can I cancel my order #1234? I ordered the wrong size."; type = InboxItemType.Message; break;
-        case 6: sender = "Grace"; content = "The item arrived broken. I'd like a refund please."; type = InboxItemType.Message; break;
-        case 7: sender = "Karen"; content = "The service was incredibly slow yesterday. Not happy."; type = InboxItemType.Review; break;
-        case 8: sender = "Liam"; content = `I want to buy 2 ${product}s. Sending to 123 Main St, New York.`; type = InboxItemType.Message; break;
-        case 9: sender = "Mona"; content = "Do you have any promo codes available right now?"; type = InboxItemType.Message; break;
-        case 10: sender = "Noah"; content = "Do you guys have a physical location or just online?"; type = InboxItemType.Comment; break;
-        case 11: sender = "Olivia"; content = `Omg the ${product} is LITERALLY the best thing I've ever tasted! 💜`; type = InboxItemType.Review; break;
-        case 12: sender = "Peter"; content = "The packaging was a bit excessive. Maybe use less plastic?"; type = InboxItemType.Comment; break;
-        case 13: sender = "Quinn"; content = "Are you hiring baristas at the moment?"; type = InboxItemType.Message; break;
-        case 14: sender = "Crypto King"; content = "Invest in DogeCoin now! 🚀 100x returns guaranteed! Link in bio."; type = InboxItemType.Comment; break;
-        case 15: sender = "Rachel"; content = "@Monica look at this! We need to go here."; type = InboxItemType.Comment; break;
-        case 16: sender = "Ivy"; content = "Hey! I love your brand. Interested in a collab? DM me!"; type = InboxItemType.Message; break;
-        case 17: sender = "Tom"; content = "Someone in the comments is posting phishing links. Just letting you know."; type = InboxItemType.Message; break;
-        case 18: sender = "Zendaya Fan"; content = "This vibe is impeccable no cap fr fr 🔥"; type = InboxItemType.Comment; break;
-        default: sender = "User"; content = "Hello"; break;
+        case 0: sender = "Alice"; content = "Hi there! Hope you're having a great day."; type = InboxItemType.Message; 
+            mockResponse = { category: 'greeting', replyText: "Hello there! Thanks for reaching out to Coffee Haven. Hope you're having a wonderful day too!", action: 'NONE' };
+            break;
+        case 1: sender = "Bob"; content = "Thanks for the quick delivery! Really appreciate it."; type = InboxItemType.Comment; 
+            mockResponse = { category: 'thanks', replyText: "You're most welcome, Bob! We're so glad you enjoyed it. Thanks for being a customer!", action: 'NONE' };
+            break;
+        case 2: sender = "Charlie"; content = `How much is the ${product.name}?`; type = InboxItemType.Message; 
+            mockResponse = { category: 'ask_price', replyText: `Hi Charlie! The ${product.name} is $${product.price}. Let us know if you have any other questions!`, action: 'NONE' };
+            break;
+        case 3: sender = "David"; content = "Is your coffee ethically sourced?"; type = InboxItemType.Message; 
+            mockResponse = { category: 'product_query', replyText: "Great question, David! Yes, all of our coffee beans are ethically sourced from our partner farms. We're passionate about quality and sustainability.", action: 'NONE' };
+            break;
+        case 4: sender = "Eve"; content = "I haven't received my tracking number yet. Order #9921."; type = InboxItemType.Message;
+            mockResponse = { category: 'track_order', replyText: "Hi Eve, let me check on that for you. I'll look into order #9921 and get back to you with an update shortly!", action: 'NONE' };
+            break;
+        case 5: sender = "Frank"; content = "Can I cancel my order #1234? I ordered the wrong one."; type = InboxItemType.Message;
+            mockResponse = { category: 'cancel_order', replyText: "Hi Frank, I can certainly look into that. Could you provide a reason for the cancellation so I can process it correctly?", action: 'NONE' };
+            break;
+        case 6: sender = "Grace"; content = "The item arrived broken. I'd like a refund please."; type = InboxItemType.Message;
+            mockResponse = { category: 'refund_request', replyText: "Oh no, Grace, I'm so sorry to hear that! Our policy for damaged items is to process a refund or replacement. Please contact our support at orders@yourbusiness.com and we'll resolve this for you right away.", action: 'NONE' };
+            break;
+        case 7: sender = "Karen"; content = "The service was incredibly slow yesterday. Not happy."; type = InboxItemType.Review;
+            mockResponse = { category: 'complaint', replyText: "Karen, I am so sorry to hear about your experience. That is not the standard of service we aim for at all. Could you please send us a DM with more details so we can make this right?", action: 'NONE' };
+            break;
+        case 8: sender = "Liam"; content = `I want to buy 2 ${product.name}s. Send to 123 Main St, New York.`; type = InboxItemType.Message; 
+            mockResponse = { category: 'interested_in_buying', replyText: `Great! Your order for 2 ${product.name}s is confirmed. Your total is $${(product.price * 2) + 5}.00 ($${product.price * 2}.00 + $5.00 shipping). Your order code is ORD-MOCK123. A confirmation has been sent to your email.`, action: 'EMAIL_OWNER', orderCode: 'ORD-MOCK123', soldItems: [{ productId: product.id, quantity: 2 }]};
+            break;
+        case 9: sender = "Mona"; content = "Do you have any promo codes available?"; type = InboxItemType.Message;
+            mockResponse = { category: 'discount_offer_query', replyText: "Hi Mona! We don't have any active promo codes at the moment, but be sure to follow our page for future announcements!", action: 'NONE' };
+            break;
+        case 10: sender = "Noah"; content = "Do you guys have a physical location?"; type = InboxItemType.Comment;
+            mockResponse = { category: 'other', replyText: "Hi Noah, thanks for asking! We're currently an online-only shop, but we hope to open a physical location in the future.", action: 'NONE' };
+            break;
+        case 11: sender = "Olivia"; content = `Omg the ${product.name} is LITERALLY the best! 💜`; type = InboxItemType.Review;
+            mockResponse = { category: 'praise', replyText: "Olivia, that just made our day! Thank you so much for the kind words, we're thrilled you love it! ❤️", action: 'NONE' };
+            break;
+        case 12: sender = "Peter"; content = "The packaging was a bit excessive."; type = InboxItemType.Comment;
+            mockResponse = { category: 'criticism', replyText: "Thanks for the feedback, Peter. We're always working to improve our sustainability and will definitely take your comments about packaging into consideration.", action: 'NONE' };
+            break;
+        case 13: sender = "Quinn"; content = "Are you hiring baristas?"; type = InboxItemType.Message;
+            mockResponse = { category: 'ask_question', replyText: "Hi Quinn, thanks for your interest! We're not hiring at the moment, but we'll post on our social channels when we have openings.", action: 'NONE' };
+            break;
+        case 14: sender = "Crypto King"; content = "Invest in DogeCoin now! 🚀 100x returns!"; type = InboxItemType.Comment; 
+            mockResponse = { category: 'spam_promo', replyText: null, action: 'NONE', internalNote: 'Spam detected. No reply sent.' };
+            break;
+        case 15: sender = "Rachel"; content = "@Monica look at this! We need to go here."; type = InboxItemType.Comment;
+            mockResponse = { category: 'tag_friend', replyText: "Thanks for sharing! Hope to see you both soon!", action: 'NONE' };
+            break;
+        case 16: sender = "Ivy"; content = "Hey! Love your brand. Interested in a collab?"; type = InboxItemType.Message;
+            mockResponse = { category: 'request_collab', replyText: `Hi Ivy, thanks for your interest! Please send your proposal to ${settings.orderConfirmationEmail || 'our business email'}, and our team will take a look.`, action: 'NONE' };
+            break;
+        case 17: sender = "Tom"; content = "Someone is posting phishing links."; type = InboxItemType.Message;
+            mockResponse = { category: 'report_abuse', replyText: "Thank you so much for letting us know, Tom. We've received your report and will take immediate action.", action: 'NONE' };
+            break;
+        case 18: sender = "Zendaya Fan"; content = "This vibe is impeccable no cap fr fr 🔥"; type = InboxItemType.Comment;
+            mockResponse = { category: 'marketing_gen_z_engage', replyText: "ayyy let's gooo! appreciate the love fam 🙏", action: 'NONE' };
+            break;
+        default: sender = "User"; content = "Hello"; 
+            mockResponse = { category: 'greeting', replyText: "Hello there! How can I help you?", action: 'NONE' };
+            break;
     }
 
-    return { id, type, sender, avatar: `https://i.pravatar.cc/150?img=${(id * 5) + 1}`, content, platform: randomConnection.platform, connectionId: randomConnection.id, timestamp: `${Math.floor(Math.random() * 50) + 5}m ago`, replied: false };
+    return { id, type, sender, avatar: `https://i.pravatar.cc/150?img=${(id * 5) + 1}`, content, platform: randomConnection.platform, connectionId: randomConnection.id, timestamp: `${Math.floor(Math.random() * 50) + 5}m ago`, replied: false, mockResponse };
 };
 
 const PlatformIcon = ({ platform }: { platform: Platform }) => {
@@ -112,6 +151,18 @@ export const Inbox: React.FC<InboxProps> = ({ settings, setSettings, connections
     setIsLoading(true);
     setGeneratedReply('');
     setAnalysisResult(null);
+
+    // NEW: Use pre-canned mock response if it exists
+    if (selectedItem.mockResponse) {
+        setTimeout(() => {
+            const mock = selectedItem.mockResponse as ReplyResponse;
+            setAnalysisResult(mock);
+            if (mock.replyText) setGeneratedReply(mock.replyText);
+            setIsLoading(false);
+        }, 800); // Simulate network delay for realism
+        return;
+    }
+
     const result = await generateReply(selectedItem.content, selectedItem.type, settings);
     setAnalysisResult(result);
     if (result.replyText) setGeneratedReply(result.replyText);

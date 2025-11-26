@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Post, UserSettings, Connection, Platform, ContentAsset, TrendTopic, TrendContentIdea } from '../types';
+import { Post, UserSettings, Connection, Platform, ContentAsset, TrendTopic, TrendContentIdea, ReplyResponse } from '../types';
 
 // Safe check for environment variable with fallback for development
 const getApiKey = () => {
@@ -40,7 +40,7 @@ const safeParseJSON = (text: string) => {
     return JSON.parse(text);
   } catch (e) {
     // 2. Try extracting from Markdown code blocks
-    const markdownMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const markdownMatch = text.match(/```(?:json)?\s*([\sS]*?)\s*```/);
     if (markdownMatch && markdownMatch[1]) {
       try {
         return JSON.parse(markdownMatch[1]);
@@ -101,15 +101,6 @@ export const getOnboardingSuggestions = async (businessDescription: string): Pro
     return { pillars: [], voice: '' };
   }
 };
-
-export interface ReplyResponse {
-    replyText: string | null; // Null if we shouldn't reply (e.g. disabled order)
-    category: string;
-    action: 'NONE' | 'EMAIL_OWNER' | 'ASK_ADDRESS';
-    internalNote?: string; // For the UI toast
-    orderCode?: string;
-    soldItems?: { productId: string, quantity: number }[];
-}
 
 export const generateReply = async (messageContent: string, type: string, settings: UserSettings): Promise<ReplyResponse> => {
   const ai = getAIClient();
