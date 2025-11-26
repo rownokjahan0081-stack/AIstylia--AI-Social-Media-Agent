@@ -3,7 +3,7 @@
 const getFB = () => (window as any).FB;
 
 // Updated with your provided App ID
-const HARDCODED_APP_ID = '1398822078509610'; 
+const HARDCODED_APP_ID = 'APP ID'; 
 
 const getAppId = () => {
     // 1. Check Vite Environment Variable (Optional override)
