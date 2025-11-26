@@ -34,3 +34,71 @@ All pipeline steps are automated by `scripts/demo_run.sh`.
    source venv/bin/activate
    pip install -r requirements.txt
    cd ..
+
+2. Start the mock backend (local mock server):
+
+npm run start:dev
+# or if your project uses a specific server file:
+# node api/mock_server.js
+
+
+3. Run the full autonomous demo:
+
+bash scripts/demo_run.sh
+
+
+4. Open the notebook for results:
+
+Open notebooks/kaggle_capstone.ipynb in Jupyter or convert to Kaggle Notebook and run all cells.
+
+Or inspect evaluation/metrics.json and evaluation/leads.json.
+
+What reviewers should expect to see
+
+evaluation/metrics.json containing KPIs: CPL, CTR, conversions, spend, impressions, leads.
+
+evaluation/leads.json containing lead records and qualification scores.
+
+Console logs showing automated steps: content generation, scheduling, campaign creation, inbox replies.
+
+Notebook graphs showing baseline vs agent metrics (CPL bar chart, time saved, leads qualified).
+
+
+---
+
+# B. DEMO FILES — Exact contents (create these files in your repo)
+
+Create directories and files exactly as named.
+
+## 1) `scripts/demo_run.sh` (make executable: `chmod +x scripts/demo_run.sh`)
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "ROOT_DIR=${ROOT_DIR}"
+
+# 1. Ensure backend mock server is running (assumes npm start was launched separately)
+echo "== DEMO RUN: Starting autonomous demo =="
+
+echo "1) Step: Generate content variants from brief"
+node ./scripts/run_content_agent_mock.js demo_case/brief.json demo_case/content_variants.json
+
+echo "2) Step: Create schedule from top variant"
+node ./scripts/run_planner_mock.js demo_case/content_variants.json demo_case/schedule.json
+
+echo "3) Step: Create a mock campaign (simulates ad platform)"
+node ./mock_ad_adapter/create_campaign_mock.js demo_case/schedule.json evaluation/campaign_run.json
+
+echo "4) Step: Simulate inbound messages processing and auto replies"
+node ./scripts/run_inbox_agent_mock.js demo_case/simulated_inbox.json evaluation/inbox_replies.json
+
+echo "5) Step: Run lead qualifier on simulated leads"
+node ./scripts/run_lead_qualifier_mock.js demo_case/simulated_leads.json evaluation/leads.json
+
+echo "6) Step: Generate analytics & KPIs"
+node ./scripts/generate_metrics_mock.js evaluation/campaign_run.json evaluation/leads.json evaluation/metrics.json
+
+echo "== DEMO RUN: Completed =="
+echo "Evaluation outputs saved to evaluation/metrics.json and evaluation/leads.json"
