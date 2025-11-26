@@ -24,7 +24,7 @@ const getApiKey = () => {
     }
     
     // 3. Fallback Key (Note: May have domain restrictions)
-    return "AIzaSyB2tXvgk_Y8BRkprwz9dDGSBwe5TRBC3XU";
+    return "Gemini API Key";
 };
 
 const API_KEY = getApiKey();
